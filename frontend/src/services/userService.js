@@ -15,9 +15,34 @@ class UserService {
         }
     }
 
-    async register(username, email, password) {
+    async register(userData) {
         try {
-            const response = await api.post('/auth/register', { username, email, password });
+            // Création d'un FormData pour gérer les fichiers si nécessaire
+            const formData = new FormData();
+
+            // Ajout des données textuelles
+            formData.append('username', userData.username);
+            formData.append('email', userData.email);
+            formData.append('password', userData.password);
+            formData.append('acceptNotification', userData.acceptNotification);
+            formData.append('acceptTerms', userData.acceptTerms);
+            formData.append('acceptCamera', userData.acceptCamera);
+
+            // Ajout des fichiers s'ils existent
+            if (userData.image) {
+                formData.append('image', userData.image);
+            }
+
+            if (userData.banner) {
+                formData.append('banner', userData.banner);
+            }
+
+            const response = await api.post('/auth/register', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
             if (response.token) {
                 Cookies.set('token', response.token, { expires: 7 });
             }
@@ -46,4 +71,6 @@ class UserService {
     }
 }
 
-export default UserService;
+const userService = new UserService();
+
+export default userService;

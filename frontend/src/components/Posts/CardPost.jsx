@@ -113,7 +113,7 @@ function CardPost({
 
                     {/* Média (image ou vidéo) au format grid */}
                     {mediaItems && mediaItems.length > 0 && (
-                        <div className="w-full grid grid-cols-2 gap-2 rounded-xl overflow-hidden col-span-1">
+                        <div className="w-3/4 mx-auto grid grid-cols-2 gap-2 rounded-xl overflow-hidden col-span-1">
                             {mediaItems.map((item, index) => (
                                 <motion.div
                                     key={index}

@@ -1,8 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
-import UserService from '../../services/userService';
-
-const userService = new UserService();
+import userService from '../../services/userService';
 
 export const login = createAsyncThunk(
     'auth/login',
@@ -23,24 +21,21 @@ export const login = createAsyncThunk(
     }
 );
 
-export const register = createAsyncThunk(
-    'auth/register',
-    async ({ username, email, password }, { rejectWithValue }) => {
-        try {
-            const response = await userService.register(username, email, password);
-            if (response.error) {
-                return rejectWithValue(response.error);
-            }
-            if (response.message) {
-                return rejectWithValue(response.message);
-            }
-            return response;
-        } catch (error) {
-            const err = error;
-            return rejectWithValue(err.message);
+export const register = createAsyncThunk('auth/register', async (userData, { rejectWithValue }) => {
+    try {
+        const response = await userService.register(userData);
+        if (response.error) {
+            return rejectWithValue(response.error);
         }
+        if (response.message) {
+            return rejectWithValue(response.message);
+        }
+        return response;
+    } catch (error) {
+        const err = error;
+        return rejectWithValue(err.message);
     }
-);
+});
 
 const authSlice = createSlice({
     name: 'auth',
