@@ -1,0 +1,30 @@
+{
+  "name": "express-mongo-template",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SwerkF/Express-Mongo-Template.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SwerkF/Express-Mongo-Template/issues"
+  },
+  "homepage": "https://github.com/SwerkF/Express-Mongo-Template#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.10.0",
+    "nodemon": "^3.1.9",
+    "zod": "^3.24.1",
+    "kleur": "^4.1.5"
+  }
+}
