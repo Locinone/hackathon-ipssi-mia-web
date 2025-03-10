@@ -1,34 +1,46 @@
 services:
+  # mongo:
+  #   image: mongo:latest
+  #   container_name: mern_mongo
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongo_data:/data/db
+  #   networks:
+  #     - mern_network
 
-  mongo:
-    image: mongo:latest
-    container_name: mern_mongo
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: mern_backend
-    ports:
-      - "4000:4000"
-    depends_on:
-      - mongo
-    environment:
-      - MONGODB_URI=mongodb://mongo:27017/hackaton-mia-2025
+  # backend:
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #   container_name: mern_backend
+  #   ports:
+  #     - "4000:4000"
+  #   depends_on:
+  #     - mongo
+  #   environment:
+  #     - MONGODB_URI=mongodb://mongo:27017/hackaton-mia-2025
+  #   networks:
+  #     - mern_network
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: mern_frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/vite.config.js
     ports:
       - "3000:3000"
-    depends_on:
-      - backend
-
+    # depends_on:
+    #   - backend
+    networks:
+      - mern_network
 
 volumes:
   mongo_data:
+
+networks:
+  mern_network:

@@ -1,13 +1,33 @@
-# Utilise une image Node pour la construction
+# Use a Node image for building the application
 FROM node:18 AS build
 
-# Définit le dossier de travail
-WORKDIR /
+# Set the working directory
+WORKDIR /app
 
-# Copie les fichiers nécessaires et installe les dépendances
+# Copy package files and install dependencies
 COPY package.json package-lock.json ./
 RUN npm install
 
-# Copie le reste du code et construit l'application
+# Copy the rest of the application code
 COPY . .
-RUN npm run dev
+
+# Build the application
+RUN npm run build
+
+# Use a smaller image for the final production build
+FROM node:18-slim
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the built application from the previous stage
+COPY --from=build /app /app
+
+# Install only production dependencies
+RUN npm install --only=production
+
+# Expose the port the app runs on
+EXPOSE 3000
+
+# Command to run the application
+CMD ["npm", "start"]

@@ -1,13 +1,16 @@
 # Utilise une image Node pour la construction
-FROM node:18 AS build
+FROM node:18-alpine AS build
 
 # Définit le dossier de travail
 WORKDIR /
 
 # Copie les fichiers nécessaires et installe les dépendances
-COPY package.json package-lock.json ./
-RUN npm install
+COPY package.json ./
+RUN npm install --force
+
+EXPOSE 3000
 
 # Copie le reste du code et construit l'application
 COPY . .
-RUN npm run start
+
+CMD [ "npm", "run", "dev", "--host", "3000"]
