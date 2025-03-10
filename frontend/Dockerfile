@@ -1,16 +1,15 @@
-# Utilise une image Node pour la construction
-FROM node:18-alpine AS build
+# Use Node.js image
+FROM node:20-alpine
 
-# Définit le dossier de travail
-WORKDIR /
+# Set working directory
+WORKDIR /app
 
-# Copie les fichiers nécessaires et installe les dépendances
-COPY package.json ./
-RUN npm install --force
+# Copy package.json and install dependencies
+COPY package.json package-lock.json ./
+RUN npm install
 
-EXPOSE 3000
-
-# Copie le reste du code et construit l'application
+# Copy all source files
 COPY . .
 
-CMD [ "npm", "run", "dev", "--host", "3000"]
+# Start Vite with hot-reloading & allow external access
+CMD ["npm", "run", "dev", "--", "--host"]

@@ -1,28 +1,32 @@
 services:
-  # mongo:
-  #   image: mongo:latest
-  #   container_name: mern_mongo
-  #   ports:
-  #     - "27017:27017"
-  #   volumes:
-  #     - mongo_data:/data/db
-  #   networks:
-  #     - mern_network
+  mongo:
+    image: mongo:latest
+    container_name: mern_mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - mern_network
 
-  # backend:
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile
-  #   container_name: mern_backend
-  #   ports:
-  #     - "4000:4000"
-  #   depends_on:
-  #     - mongo
-  #   environment:
-  #     - MONGODB_URI=mongodb://mongo:27017/hackaton-mia-2025
-  #   networks:
-  #     - mern_network
-
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mern_backend
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./backend:/app  # Mount backend files to allow live reloading
+      - /app/node_modules  # Prevent overwriting node_modules
+    depends_on:
+      - mongo
+    networks:
+      - mern_network
   frontend:
     build:
       context: ./frontend
@@ -31,11 +35,10 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-      - /app/vite.config.js
     ports:
-      - "3000:3000"
-    # depends_on:
-    #   - backend
+      - "5173:5173"
+    depends_on:
+      - backend
     networks:
       - mern_network
 
@@ -44,3 +47,4 @@ volumes:
 
 networks:
   mern_network:
+    driver: bridge

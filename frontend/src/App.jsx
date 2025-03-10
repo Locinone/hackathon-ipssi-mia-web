@@ -1,12 +1,12 @@
-import { Fragment, useState } from 'react'
+import React from 'react';
 
 function App() {
-
+  
   return (
-   <Fragment>
-
-   </Fragment>
-  )
+    <Fragment>
+      <h1>Hello, World!</h1>
+    </Fragment>
+  );
 }
 
-export default App
+export default App;
