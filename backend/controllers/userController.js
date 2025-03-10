@@ -1,10 +1,10 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-// const { userSchema } = require("../validators/userValidator");
+const { userSchema } = require("../validators/userValidator");
 
 const login = async (req, res) => {
   try {
-    // userSchema.parse(req.body);
+    userSchema.parse(req.body);
 
     const { username, password } = req.body;
 
@@ -23,7 +23,7 @@ const login = async (req, res) => {
 
 const register = async (req, res) => {
   try {
-    // userSchema.parse(req.body);
+    userSchema.parse(req.body);
 
     const { username, password } = req.body;
 
