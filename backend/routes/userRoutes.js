@@ -10,4 +10,7 @@ router.get("/getusers", userController.getUsers);
 router.put("/update/:id", authenticateJWT, userController.updateUser);
 router.delete("/delete/:id", authenticateJWT, userController.deleteUser);
 
+router.post("/follow/:id", authenticateJWT, userController.followUser);
+router.post("/unfollow/:id", authenticateJWT, userController.unfollowUser);
+
 module.exports = router;

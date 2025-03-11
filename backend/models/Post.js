@@ -7,6 +7,7 @@ const postSchema = new mongoose.Schema({
   hashtags: [{ type: mongoose.Schema.Types.ObjectId, ref: "Hashtag" }],
   comments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Comment" }],
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "Like" }],
+  dislikes: [{ type: mongoose.Schema.Types.ObjectId, ref: "Dislike" }],
   themes: [{ type: mongoose.Schema.Types.ObjectId, ref: "Theme" }],
   createdAt: { type: Date, default: Date.now },
 });
