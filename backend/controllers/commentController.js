@@ -1,6 +1,6 @@
 const Post = require("../models/Post");
 const Comment = require("../models/Comment");
-const NotificationManager = require("../utils/NotificationManager");
+const NotificationManager = require("../utils/notificationManager");
 
 const createComment = async (req, res) => {
   const io = req.app.get("io");

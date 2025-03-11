@@ -1,4 +1,12 @@
-import { motion } from 'framer-motion';
+import { ButtonHTMLAttributes, ReactNode } from 'react';
+
+type ButtonVariant = 'default' | 'primary' | 'secondary' | 'danger' | 'outline';
+
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+    children: ReactNode;
+    variant?: ButtonVariant;
+    className?: string;
+}
 
 const Button = ({
     children,
@@ -7,11 +15,12 @@ const Button = ({
     className = '',
     disabled = false,
     variant = 'default',
-}) => {
+    ...props
+}: ButtonProps) => {
     const baseStyles =
         'font-medium rounded-lg py-2 px-4 transition-colors flex items-center justify-center gap-2';
 
-    const variantStyles = {
+    const variantStyles: Record<ButtonVariant, string> = {
         default: 'bg-white text-black hover:bg-gray-100',
         primary: 'bg-black text-white hover:bg-zinc-800',
         secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
@@ -22,16 +31,15 @@ const Button = ({
     const buttonStyles = `${baseStyles} ${variantStyles[variant]} ${className}`;
 
     return (
-        <motion.button
+        <button
             type={type}
-            onClick={onClick}
+            onClick={onClick as React.MouseEventHandler<HTMLButtonElement>}
             disabled={disabled}
-            whileHover={{ scale: disabled ? 1 : 1.02 }}
-            whileTap={{ scale: disabled ? 1 : 0.98 }}
             className={`${buttonStyles} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            {...props}
         >
             {children}
-        </motion.button>
+        </button>
     );
 };
 

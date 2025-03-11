@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const { Server } = require("socket.io");
 
+const path = require("path");
 const userRoutes = require("./routes/userRoutes");
 const postRoutes = require("./routes/postRoutes");
 const likeRoutes = require("./routes/likeRoutes");
@@ -33,6 +34,10 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Servir les fichiers statiques depuis le dossier uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Routes
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => logger.success("✅ Connecté à MongoDB"))

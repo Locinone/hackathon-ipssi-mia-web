@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { Calendar, Link as LinkIcon, MapPin } from 'lucide-react';
@@ -114,28 +114,7 @@ const userDislikes = [
 const Profile = () => {
     const { username } = useParams();
     const [activeTab, setActiveTab] = useState('posts');
-    const [contentToDisplay, setContentToDisplay] = useState([]);
     const [isScrolled, setIsScrolled] = useState(false);
-
-    useEffect(() => {
-        // Détermine quel contenu afficher en fonction de l'onglet actif
-        switch (activeTab) {
-            case 'posts':
-                setContentToDisplay(userPosts);
-                break;
-            case 'comments':
-                setContentToDisplay(userComments);
-                break;
-            case 'likes':
-                setContentToDisplay(userLikes);
-                break;
-            case 'dislikes':
-                setContentToDisplay(userDislikes);
-                break;
-            default:
-                setContentToDisplay(userPosts);
-        }
-    }, [activeTab]);
 
     useEffect(() => {
         const handleScroll = () => {

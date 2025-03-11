@@ -1,3 +1,6 @@
+import { User as UserType } from '@/types';
+import { MediaItem } from '@/types/postTypes';
+
 import { useEffect, useState } from 'react';
 
 import { motion } from 'framer-motion';
@@ -11,15 +14,23 @@ function CardPost({
     likes = 0,
     comments = 0,
     mediaItems = [],
+}: {
+    content: string;
+    author: UserType;
+    date: string;
+    repeat: number;
+    likes: number;
+    comments: number;
+    mediaItems: MediaItem[];
 }) {
-    const [hashtags, setHashtags] = useState(['#hashtag1', '#hashtag2', '#hashtag3']);
+    const [hashtags, setHashtags] = useState<string[] | null>(null);
 
     useEffect(() => {
         const hashtags = content.match(/#\w+/g);
         setHashtags(hashtags);
     }, [content]);
 
-    const getTextSizeClass = (text) => {
+    const getTextSizeClass = (text: string) => {
         if (!text) return 'text-7xl';
 
         const length = text.length;
@@ -46,7 +57,7 @@ function CardPost({
                                 </motion.div>
                                 <div className="text-left">
                                     <h3 className="m-0 text-xl sm:text-2xl font-medium">
-                                        {author}
+                                        {author.username}
                                     </h3>
                                     <p className="m-0 text-sm sm:text-lg">{date}</p>
                                 </div>
