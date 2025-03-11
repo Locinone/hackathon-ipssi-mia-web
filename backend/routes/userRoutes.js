@@ -65,4 +65,6 @@ router.get("/getusers", userController.getUsers);
 router.put("/update/:id", authenticateJWT, verifyAccess("admin"), userController.updateUser);
 router.delete("/delete/:id", authenticateJWT, verifyAccess("admin"), userController.deleteUser);
 router.get("/me", authenticateJWT, userController.getCurrentUser);
+router.post("/follow/:id", authenticateJWT, userController.followUser);
+router.post("/unfollow/:id", authenticateJWT, userController.unfollowUser);
 module.exports = router;

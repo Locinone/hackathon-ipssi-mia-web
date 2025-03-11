@@ -2,8 +2,10 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const jsonResponse = require("../utils/jsonResponse");
+const { userSchema } = require("../validators/userValidator");
 
 const login = async (req, res) => {
+  const io = req.app.get("io");
   try {
     const email = req.body.email.toLowerCase();
     const user = await User.findOne({ email });
@@ -27,7 +29,6 @@ const login = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || "1d" },
     );
-
     const refreshToken = jwt.sign(
       {
         id: user._id,
@@ -47,14 +48,11 @@ const login = async (req, res) => {
 };
 
 const register = async (req, res) => {
+  const io = req.app.get("io");
   try {
 
-    const { name, username, email, password, acceptNotification, acceptCamera, acceptTerms } = req.body;
-
-    // Vérifier si l'utilisateur existe déjà
-    const existingUser = await User.findOne({
-      $or: [{ email }, { username }]
-    });
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+    const image = req.body.image || "";
 
     if (existingUser) {
       return res.status(400).json({
@@ -100,6 +98,68 @@ const register = async (req, res) => {
   }
 };
 
+const followUser = async (req, res) => {
+  const io = req.app.get("io");
+  const notificationManager = new NotificationManager(io);
+
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const userToFollow = await User.findById(id);
+    const currentUser = await User.findById(userId);
+
+    if (!userToFollow) {
+      return res.status(404).send("Utilisateur introuvable");
+    }
+
+    if (!currentUser.following.includes(id)) {
+      currentUser.following.push(id);
+      userToFollow.followers.push(userId);
+
+      await currentUser.save();
+      await userToFollow.save();
+
+      await notificationManager.sendNotification({
+        sender: userId,
+        receiver: id,
+        type: "follow",
+        message: `${currentUser.username} vous a suivi.`,
+      });
+
+      return res.status(200).send("Utilisateur suivi avec succès");
+    }
+
+    res.status(400).send("Vous suivez déjà cet utilisateur");
+  } catch (error) {
+    res.status(500).send({ message: error.message });
+  }
+};
+
+const unfollowUser = async (req, res) => {
+  const io = req.app.get("io");
+  const notificationManager = new NotificationManager(io);
+
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  try {
+    await User.findByIdAndUpdate(userId, { $pull: { following: id } });
+    await User.findByIdAndUpdate(id, { $pull: { followers: userId } });
+
+    await notificationManager.sendNotification({
+      sender: userId,
+      receiver: id,
+      type: "unfollow",
+      message: "Un utilisateur s'est désabonné de votre profil.",
+    });
+
+    res.status(200).send("Utilisateur désabonné avec succès");
+  } catch (error) {
+    res.status(500).send({ message: error.message });
+  }
+};
+
 const getUsers = async (req, res) => {
   try {
     const filter = {};
@@ -133,7 +193,6 @@ const updateUser = async (req, res) => {
     }
 
     const updateData = { ...req.body };
-
     if (req.body.image) {
       updateData.image = req.body.image;
     }
