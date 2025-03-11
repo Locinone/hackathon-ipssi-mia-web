@@ -1,14 +1,25 @@
-import { jsonResponse } from "../utils/jsonResponse"
+const jsonResponse = require("../utils/jsonResponse");
+
 const zodValidator = (schema, property) => {
     return (req, res, next) => {
         try {
-            const { error } = schema.validate(req[property])
-            if (error) return jsonResponse(res, error.message, 400, null)
-            next()
+            console.log(req[property]);
+            try {
+                const result = schema.parse(req[property]);
+                next();
+            } catch (error) {
+                console.log(error);
+                return jsonResponse(
+                    res,
+                    'Données invalides.',
+                    400,
+                    { errors: error.errors || error.format() }
+                );
+            }
         } catch (error) {
-            return jsonResponse(res, error.message, 500, null)
+            return jsonResponse(res, error.message, 500, null);
         }
-    }
-}
+    };
+};
 
-export default zodValidator
+module.exports = zodValidator;

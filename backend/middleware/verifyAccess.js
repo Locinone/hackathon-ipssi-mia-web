@@ -1,5 +1,5 @@
-import jwt from "jsonwebtoken";
-import { jsonResponse } from "../utils/jsonResponse";
+const jwt = require("jsonwebtoken");
+const jsonResponse = require("../utils/jsonResponse");
 
 const verifyAccess = (userRole) => {
     return (req, res, next) => {
@@ -14,4 +14,4 @@ const verifyAccess = (userRole) => {
     }
 }
 
-export default verifyAccess
+module.exports = verifyAccess

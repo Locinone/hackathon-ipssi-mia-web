@@ -1,8 +1,18 @@
-import { forwardRef } from 'react';
+import { ChangeEvent, SelectHTMLAttributes, forwardRef } from 'react';
 
 import { ChevronDown } from 'lucide-react';
 
-const SelectInput = forwardRef(
+interface SelectOption {
+    value: string;
+    label: string;
+}
+
+interface SelectInputProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> {
+    options: SelectOption[];
+    onChange?: (e: ChangeEvent<HTMLSelectElement>) => void;
+}
+
+const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
     (
         {
             options = [],
@@ -10,10 +20,10 @@ const SelectInput = forwardRef(
             onChange,
             name,
             id,
-            placeholder = 'Sélectionner une option',
             className = '',
             disabled = false,
             required = false,
+            ...props
         },
         ref
     ) => {
@@ -32,12 +42,8 @@ const SelectInput = forwardRef(
                 transition-colors cursor-pointer
                 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
                 ${className}`}
+                    {...props}
                 >
-                    {placeholder && (
-                        <option value="" disabled selected={!value}>
-                            {placeholder}
-                        </option>
-                    )}
                     {options.map((option) => (
                         <option key={option.value} value={option.value}>
                             {option.label}

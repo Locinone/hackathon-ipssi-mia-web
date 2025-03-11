@@ -1,4 +1,4 @@
-import { z } from 'zod';
+const z = require('zod');
 
 // Messages d'erreur personnalisés en français
 const errorMessages = {
@@ -10,17 +10,21 @@ const errorMessages = {
 };
 
 // Schéma pour le formulaire de connexion
-export const loginSchema = z.object({
+const loginSchema = z.object({
     email: z.string({ required_error: errorMessages.required }).email(errorMessages.email),
     password: z.string({ required_error: errorMessages.required }).min(1, errorMessages.required),
 });
 
 // Schéma pour le formulaire d'inscription
-export const registerSchema = z.object({
+const registerSchema = z.object({
+    name: z.string({ required_error: errorMessages.required }),
     username: z
         .string({ required_error: errorMessages.required })
-        .min(3, "Le nom d'utilisateur doit contenir au moins 3 caractères")
-        .max(50, "Le nom d'utilisateur est trop long"),
+        .min(4, "Le nom d'utilisateur doit contenir au moins 3 caractères (sans compter le @)")
+        .max(51, "Le nom d'utilisateur est trop long")
+        .refine(val => val.startsWith('@'), {
+            message: "Le nom d'utilisateur doit commencer par @"
+        }),
     email: z.string({ required_error: errorMessages.required }).email(errorMessages.email),
     password: z
         .string({ required_error: errorMessages.required })
@@ -29,27 +33,17 @@ export const registerSchema = z.object({
             /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
             'Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre'
         ),
-    image: z.any().optional(), // Pour gérer le fichier d'image de profil
-    banner: z.any().optional(), // Pour gérer le fichier de bannière
-    acceptNotification: z.boolean().default(false),
-    acceptTerms: z.boolean().refine((val) => val === true, { message: errorMessages.terms }),
-    acceptCamera: z.boolean().default(false),
+    image: z.string().optional(),
+    banner: z.string().optional(),
+    acceptNotification: z.string().refine(val => val === "true" || val === "false", {
+        message: "Doit être soit 'true' soit 'false'"
+    }).default("false"),
+    acceptTerms: z.string().refine(val => val === "true" || val === "false", {
+        message: "Doit être soit 'true' soit 'false'"
+    }).default("false"),
+    acceptCamera: z.string().refine(val => val === "true" || val === "false", {
+        message: "Doit être soit 'true' soit 'false'"
+    }).default("false"),
 });
 
-// Fonction utilitaire pour valider les données avec un schéma Zod
-export const validateForm = (schema, data) => {
-    try {
-        const result = schema.parse(data);
-        return { success: true, data: result, error: null };
-    } catch (error) {
-        // Formatage des erreurs Zod pour un usage simplifié
-        const formattedErrors = {};
-        if (error.errors) {
-            error.errors.forEach((err) => {
-                const path = err.path[0];
-                formattedErrors[path] = err.message;
-            });
-        }
-        return { success: false, data: null, error: formattedErrors };
-    }
-};
+module.exports = { loginSchema, registerSchema }

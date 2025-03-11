@@ -31,13 +31,77 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
-// Limiter la taille des fichiers (5MB)
-const upload = multer({
+// Configuration de multer avec gestion d'erreur
+const multerUpload = multer({
     storage: storage,
     limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB
+        fileSize: 10 * 1024 * 1024, // 10 MB
+        fieldSize: 50 * 1024 * 1024, // Augmentez à 50 MB
+        fields: 10, // Nombre maximum de champs non-fichiers
+        files: 5, // Nombre maximum de fichiers
     },
     fileFilter: fileFilter
 });
 
-module.exports = upload; 
+// Wrapper pour gérer les erreurs de multer et envoyer une réponse JSON
+const upload = {
+    single: (fieldName) => {
+        return (req, res, next) => {
+            multerUpload.single(fieldName)(req, res, (err) => {
+                if (err) {
+                    if (err instanceof multer.MulterError) {
+                        return res.status(400).json({
+                            success: false,
+                            message: `Erreur d'upload: ${err.message}`
+                        });
+                    }
+                    return res.status(500).json({
+                        success: false,
+                        message: err.message
+                    });
+                }
+                next();
+            });
+        };
+    },
+    array: (fieldName, maxCount) => {
+        return (req, res, next) => {
+            multerUpload.array(fieldName, maxCount)(req, res, (err) => {
+                if (err) {
+                    if (err instanceof multer.MulterError) {
+                        return res.status(400).json({
+                            success: false,
+                            message: `Erreur d'upload: ${err.message}`
+                        });
+                    }
+                    return res.status(500).json({
+                        success: false,
+                        message: err.message
+                    });
+                }
+                next();
+            });
+        };
+    },
+    fields: (fields) => {
+        return (req, res, next) => {
+            multerUpload.fields(fields)(req, res, (err) => {
+                if (err) {
+                    if (err instanceof multer.MulterError) {
+                        return res.status(400).json({
+                            success: false,
+                            message: `Erreur d'upload: ${err.message}`
+                        });
+                    }
+                    return res.status(500).json({
+                        success: false,
+                        message: err.message
+                    });
+                }
+                next();
+            });
+        };
+    }
+};
+
+module.exports = upload;

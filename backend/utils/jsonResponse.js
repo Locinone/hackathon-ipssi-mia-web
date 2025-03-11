@@ -1,5 +1,5 @@
 
-export const jsonResponse = (
+const jsonResponse = (
     res,
     message,
     status,
@@ -11,3 +11,5 @@ export const jsonResponse = (
         data: data
     })
 }
+
+module.exports = jsonResponse

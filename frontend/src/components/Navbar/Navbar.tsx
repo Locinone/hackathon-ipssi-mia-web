@@ -1,20 +1,18 @@
 import { useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { motion } from 'framer-motion';
 import { Bookmark, Flame, Home, LogOut, Plus, Search, User } from 'lucide-react';
 
-import { logout } from '../../redux/slices/userSlice';
-import userService from '../../services/userService';
-import CreatePostForm from './CreatePostForm';
+interface NavbarProps {
+    onPageChange?: (page: string) => void;
+}
 
-function Navbar({ onPageChange }) {
+const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [activePath, setActivePath] = useState('');
     const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
-    const dispatch = useDispatch();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -22,24 +20,20 @@ function Navbar({ onPageChange }) {
         setActivePath(location.pathname);
     }, [location.pathname]);
 
-    const handleSearchChange = (e) => {
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(e.target.value);
     };
 
-    const handleSearchSubmit = (e) => {
+    const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (searchQuery.trim()) {
             navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
         }
     };
 
-    const handleLogout = () => {
-        userService.logout();
-        dispatch(logout());
-        navigate('/login');
-    };
+    const handleLogout = async () => {};
 
-    const navigateTo = (path) => {
+    const navigateTo = (path: string) => {
         navigate(path);
         if (onPageChange) {
             onPageChange(path.replace('/', '') || 'home');
@@ -83,10 +77,6 @@ function Navbar({ onPageChange }) {
                     >
                         <Plus size={24} />
                     </motion.button>
-                    <CreatePostForm
-                        isOpen={isCreatePostOpen}
-                        onClose={() => setIsCreatePostOpen(false)}
-                    />
                 </div>
                 <div className="flex flex-row justify-between items-center gap-10">
                     <div className="flex flex-row justify-between items-center gap-10 py-2 px-4 rounded-full text-white text-lg md:text-2xl">
@@ -196,6 +186,6 @@ function Navbar({ onPageChange }) {
             </nav>
         </>
     );
-}
+};
 
 export default Navbar;

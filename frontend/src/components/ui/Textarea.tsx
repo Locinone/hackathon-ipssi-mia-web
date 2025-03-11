@@ -1,20 +1,26 @@
-import { forwardRef } from 'react';
+import { ChangeEvent, TextareaHTMLAttributes, forwardRef } from 'react';
 
-const Input = forwardRef(
+interface TextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange'> {
+    onChange?: (e: ChangeEvent<HTMLTextAreaElement>) => void;
+    label?: string;
+    highlightHashtags?: boolean;
+}
+
+const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     (
         {
-            type = 'text',
             placeholder = '',
             value,
             onChange,
             name,
             id,
             className = '',
-            icon,
             disabled = false,
             required = false,
-            autoComplete = 'off',
+            rows = 4,
             label = '',
+            highlightHashtags = false,
+            ...props
         },
         ref
     ) => {
@@ -28,14 +34,8 @@ const Input = forwardRef(
                         {label}
                     </label>
                 )}
-                {icon && (
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">
-                        {icon}
-                    </div>
-                )}
-                <input
+                <textarea
                     ref={ref}
-                    type={type}
                     name={name}
                     id={id || name}
                     placeholder={placeholder}
@@ -43,19 +43,19 @@ const Input = forwardRef(
                     onChange={onChange}
                     disabled={disabled}
                     required={required}
-                    autoComplete={autoComplete}
+                    rows={rows}
                     className={`w-full bg-white border border-gray-200 rounded-lg py-2 px-3 
-                ${icon ? 'pl-10' : 'pl-3'} 
-                text-black focus:outline-none focus:ring-2 focus:ring-gray-300 
-                placeholder-gray-500 transition-colors
-                ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-                ${className}`}
+                    text-black focus:outline-none focus:ring-2 focus:ring-gray-300 
+                    placeholder-gray-500 transition-colors resize-none
+                    ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+                    ${className}`}
+                    {...props}
                 />
             </div>
         );
     }
 );
 
-Input.displayName = 'Input';
+Textarea.displayName = 'Textarea';
 
-export default Input;
+export default Textarea;
