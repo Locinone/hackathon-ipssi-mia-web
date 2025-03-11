@@ -12,4 +12,4 @@ RUN npm install
 COPY . .
 
 # Start Vite with hot-reloading & allow external access
-CMD ["npm", "run", "dev", "--", "--host"]
+CMD ["npm", "run", "dev"]
