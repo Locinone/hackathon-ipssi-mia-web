@@ -16,3 +16,6 @@ Thumbs.db
 # IDE specific files
 .vscode/
 .idea/
+
+# Uploaded files
+uploads/
