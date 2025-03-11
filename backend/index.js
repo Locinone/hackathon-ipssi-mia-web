@@ -3,6 +3,11 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const userRoutes = require("./routes/userRoutes");
 const postRoutes = require("./routes/postRoutes");
+const likeRoutes = require("./routes/likeRoutes");
+const commentRoutes = require("./routes/commentRoutes");
+const hashtagRoutes = require("./routes/hashtagRoutes");
+const themeRoutes = require("./routes/themeRoutes");
+const scoreThemeRoutes = require("./routes/scoreThemeRoutes");
 const logger = require("./utils/logger");
 require("dotenv").config();
 
@@ -16,6 +21,11 @@ app.use(express.json());
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
+app.use("/api/likes", likeRoutes);
+app.use("/api/comments", commentRoutes);
+app.use("/api/hashtags", hashtagRoutes);
+app.use("/api/themes", themeRoutes);
+app.use("/api/scoreThemes", scoreThemeRoutes);
 
 // MongoDB connection
 mongoose
