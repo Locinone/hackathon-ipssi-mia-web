@@ -18,13 +18,14 @@
   },
   "homepage": "https://github.com/SwerkF/Express-Mongo-Template#readme",
   "dependencies": {
+    "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
+    "kleur": "^4.1.5",
     "mongoose": "^8.10.0",
     "nodemon": "^3.1.9",
-    "zod": "^3.24.1",
-    "kleur": "^4.1.5"
+    "zod": "^3.24.1"
   }
 }
