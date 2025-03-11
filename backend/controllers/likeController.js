@@ -1,6 +1,6 @@
 const Like = require("../models/Like");
 const Post = require("../models/Post");
-const NotificationManager = require("../utils/NotificationManager");
+const NotificationManager = require("../utils/notificationManager");
 
 const createLike = async (req, res) => {
   const io = req.app.get("io");

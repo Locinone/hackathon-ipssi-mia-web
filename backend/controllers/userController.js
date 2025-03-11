@@ -2,10 +2,8 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const jsonResponse = require("../utils/jsonResponse");
-const { userSchema } = require("../validators/userValidator");
 
 const login = async (req, res) => {
-  const io = req.app.get("io");
   try {
     const email = req.body.email.toLowerCase();
     const user = await User.findOne({ email });
@@ -48,10 +46,8 @@ const login = async (req, res) => {
 };
 
 const register = async (req, res) => {
-  const io = req.app.get("io");
   try {
 
-    const hashedPassword = await bcrypt.hash(req.body.password, 10);
     const image = req.body.image || "";
 
     if (existingUser) {
@@ -237,4 +233,4 @@ const getCurrentUser = async (req, res) => {
   jsonResponse(res, "Utilisateur récupéré", 200, user);
 };
 
-module.exports = { login, register, updateUser, deleteUser, getUsers, getCurrentUser };
+module.exports = { login, register, updateUser, deleteUser, getUsers, getCurrentUser, followUser, unfollowUser };

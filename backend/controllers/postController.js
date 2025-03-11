@@ -2,7 +2,8 @@ const Post = require("../models/Post");
 const Hashtag = require("../models/Hashtag");
 const Theme = require("../models/Theme");
 const User = require("../models/User");
-const NotificationManager = require("../utils/NotificationManager");
+const { jsonResponse } = require("../utils/jsonResponse");
+const NotificationManager = require("../utils/notificationManager");
 
 const createPost = async (req, res) => {
   const io = req.app.get("io");
@@ -29,15 +30,15 @@ const createPost = async (req, res) => {
     const themeIds =
       themes && themes.length > 0
         ? await Promise.all(
-            themes.map(async (themeName) => {
-              let theme = await Theme.findOne({ name: themeName });
-              if (!theme) {
-                theme = new Theme({ name: themeName });
-                await theme.save();
-              }
-              return theme._id;
-            }),
-          )
+          themes.map(async (themeName) => {
+            let theme = await Theme.findOne({ name: themeName });
+            if (!theme) {
+              theme = new Theme({ name: themeName });
+              await theme.save();
+            }
+            return theme._id;
+          }),
+        )
         : [];
 
     const post = new Post({
