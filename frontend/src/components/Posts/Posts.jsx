@@ -192,9 +192,7 @@ function Posts({ userProfile = false }) {
         <Fragment>
             <motion.div
                 ref={containerRef}
-                className={`w-full min-h-screen flex justify-center items-center relative pb-16 md:pb-0 ${
-                    userProfile === false ? 'pt-20 md:pt-24' : 'pt-0 md:pt-0'
-                }`}
+                className={`w-full min-h-screen flex justify-center items-center relative pb-16 md:pb-0`}
                 animate={{ background: gradient }}
                 transition={{ duration: 1.5, ease: 'easeInOut' }}
                 style={{ background: gradient }}
