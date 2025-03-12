@@ -3,7 +3,7 @@ const jsonResponse = require("../utils/jsonResponse");
 const zodValidator = (schema, property) => {
     return (req, res, next) => {
         try {
-            console.log(req[property]);
+            console.log("BODY", req[property]);
             try {
                 const result = schema.parse(req[property]);
                 next();

@@ -1,27 +1,36 @@
-import { User as UserType } from '@/types';
-import { MediaItem } from '@/types/postTypes';
+import { User } from '@/types';
 
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { motion } from 'framer-motion';
-import { Bookmark, Heart, MessageCircle, Repeat, User } from 'lucide-react';
+import {
+    Bookmark,
+    MessageCircle,
+    Repeat,
+    ThumbsDown,
+    ThumbsUp,
+    User as UserIcon,
+} from 'lucide-react';
 
 function CardPost({
     content = 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.',
     author,
     date = new Date().toLocaleDateString(),
-    repeat = 0,
-    likes = 0,
-    comments = 0,
-    mediaItems = [],
+    repeat = [],
+    likes = [],
+    dislikes = [],
+    comments = [],
+    files = [],
 }: {
     content: string;
-    author: UserType;
+    author: User;
     date: string;
-    repeat: number;
-    likes: number;
-    comments: number;
-    mediaItems: MediaItem[];
+    repeat: User[];
+    likes: User[];
+    dislikes: User[];
+    comments: User[];
+    files: string[];
 }) {
     const [hashtags, setHashtags] = useState<string[] | null>(null);
 
@@ -39,11 +48,30 @@ function CardPost({
         return 'text-4xl md:text-5xl lg:text-8xl';
     };
 
+    const timeAgo = (date: string) => {
+        const now = new Date();
+        const postDate = new Date(date);
+        const diffTime = Math.abs(now.getTime() - postDate.getTime());
+
+        const seconds = Math.floor(diffTime / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+        const months = Math.floor(days / 30);
+        const years = Math.floor(months / 12);
+        if (years > 0) return `Posté il y a ${years} an${years > 1 ? 's' : ''}.`;
+        if (months > 0) return `Posté il y a ${months} mois.`;
+        if (days > 0) return `Posté il y a ${days} jour${days > 1 ? 's' : ''}.`;
+        if (hours > 0) return `Posté il y a ${hours} heure${hours > 1 ? 's' : ''}.`;
+        if (minutes > 0) return `Posté il y a ${minutes} minute${minutes > 1 ? 's' : ''}.`;
+        return `Posté il y a ${seconds} seconde${seconds > 1 ? 's' : ''}.`;
+    };
+
     return (
         <div className="w-full h-full flex flex-col items-start text-white">
             <div className="px-4 sm:px-8 md:px-16 lg:px-24 flex flex-col gap-6 md:gap-10 w-full">
                 <div
-                    className={`${mediaItems && mediaItems.length > 0 ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : ''}`}
+                    className={`${files && files.length > 0 ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : ''}`}
                 >
                     {/* Contenu texte */}
                     {content && (
@@ -53,17 +81,23 @@ function CardPost({
                                     whileHover={{ scale: 1.05 }}
                                     className="w-12 h-12 sm:w-16 sm:h-16 p-2 rounded-full overflow-hidden bg-white/20 flex items-center justify-center"
                                 >
-                                    <User className="text-white" size={32} />
+                                    <UserIcon className="text-white" size={32} />
                                 </motion.div>
-                                <div className="text-left">
-                                    <h3 className="m-0 text-xl sm:text-2xl font-medium">
-                                        {author.username}
-                                    </h3>
-                                    <p className="m-0 text-sm sm:text-lg">{date}</p>
+                                <div className="flex flex-row gap-3">
+                                    <div className="flex flex-col gap-[-20em]">
+                                        <h3 className="text-xl sm:text-2xl font-bold">
+                                            {author.name}
+                                        </h3>
+                                        <Link to={`/profile/${author.username}`}>
+                                            <p className="text-sm sm:text-lg hover:underline">
+                                                {author.username}
+                                            </p>
+                                        </Link>
+                                    </div>
                                 </div>
                             </div>
                             <h2
-                                className={`${getTextSizeClass(content)} font-bold leading-tight text-left ${mediaItems && mediaItems.length > 0 ? 'col-span-1' : ''}`}
+                                className={`${getTextSizeClass(content)} font-bold leading-tight text-left ${files && files.length > 0 ? 'col-span-1' : ''}`}
                             >
                                 {content}
                             </h2>
@@ -91,8 +125,16 @@ function CardPost({
                                         whileTap={{ scale: 0.9 }}
                                         className="flex flex-row justify-between items-center gap-1 sm:gap-2 cursor-pointer"
                                     >
-                                        <Heart size={24} />
-                                        <p className="text-sm sm:text-lg">{likes}</p>
+                                        <ThumbsUp size={24} />
+                                        <p className="text-sm sm:text-lg">{likes.length || 0}</p>
+                                    </motion.div>
+                                    <motion.div
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        className="flex flex-row justify-between items-center gap-1 sm:gap-2 cursor-pointer"
+                                    >
+                                        <ThumbsDown size={24} />
+                                        <p className="text-sm sm:text-lg">{dislikes.length || 0}</p>
                                     </motion.div>
                                     <motion.div
                                         whileHover={{ scale: 1.1 }}
@@ -100,7 +142,7 @@ function CardPost({
                                         className="flex flex-row justify-between items-center gap-1 sm:gap-2 cursor-pointer"
                                     >
                                         <MessageCircle size={24} />
-                                        <p className="text-sm sm:text-lg">{comments}</p>
+                                        <p className="text-sm sm:text-lg">{comments.length || 0}</p>
                                     </motion.div>
                                     <motion.div
                                         whileHover={{ scale: 1.1 }}
@@ -108,7 +150,7 @@ function CardPost({
                                         className="flex flex-row justify-between items-center gap-1 sm:gap-2 cursor-pointer"
                                     >
                                         <Repeat size={24} />
-                                        <p className="text-sm sm:text-lg">{repeat}</p>
+                                        <p className="text-sm sm:text-lg">{repeat.length || 0}</p>
                                     </motion.div>
                                     <motion.div
                                         whileHover={{ scale: 1.1 }}
@@ -117,33 +159,37 @@ function CardPost({
                                     >
                                         <Bookmark size={24} />
                                     </motion.div>
+                                    <p className="m-0 text-sm sm:text-lg">{timeAgo(date)}</p>
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {/* Média (image ou vidéo) au format grid */}
-                    {mediaItems && mediaItems.length > 0 && (
+                    {files && files.length > 0 && (
                         <div className="w-3/4 mx-auto grid grid-cols-2 gap-2 rounded-xl overflow-hidden col-span-1">
-                            {mediaItems.map((item, index) => (
+                            {files.map((item, index) => (
                                 <motion.div
                                     key={index}
                                     whileHover={{ scale: 1.02 }}
                                     className="overflow-hidden aspect-square"
                                 >
-                                    {item.type === 'image' && (
+                                    {item.endsWith('.jpg') ||
+                                    item.endsWith('.png') ||
+                                    item.endsWith('.jpeg') ? (
                                         <img
-                                            src={item.url}
+                                            src={'http://localhost:3000' + item}
                                             alt={`Media ${index + 1}`}
                                             className="w-full h-full object-cover"
                                         />
-                                    )}
-                                    {item.type === 'video' && (
+                                    ) : item.endsWith('.mp4') ? (
                                         <video
-                                            src={item.url}
+                                            src={'http://localhost:3000' + item}
                                             controls
                                             className="w-full h-full object-cover"
                                         />
+                                    ) : (
+                                        <p>ff</p>
                                     )}
                                 </motion.div>
                             ))}

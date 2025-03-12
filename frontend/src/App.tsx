@@ -29,11 +29,10 @@ const PublicRoutes = () => {
 };
 
 function App() {
-    const { isAuthenticated, loading, autoLogin, user } = useAuthStore();
+    const { isAuthenticated, loading, autoLogin } = useAuthStore();
 
     useEffect(() => {
         autoLogin();
-        console.log(user);
     }, [autoLogin]);
 
     if (loading) return <Loader />;
