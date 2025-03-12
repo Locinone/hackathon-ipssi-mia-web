@@ -64,10 +64,19 @@ def analyze_list_text(texts):
     for i, text in enumerate(texts):
         topic_keywords_list = tweet_topics[i][2]
         sentiment_analysis = analyze_sentiment(topic_keywords_list)
+        combined_analysis = [
+            {
+                "word": item["word"],
+                "compound": item["sentiment"]["compound"],
+                "positive": item["sentiment"]["pos"],
+                "negative": item["sentiment"]["neg"],
+                "neutral": item["sentiment"]["neu"]
+            }
+            for item in sentiment_analysis
+        ]
         response.append({
             "tweet": text,
-            "dominant_theme": topic_keywords_list,
-            "sentiment_analysis": sentiment_analysis
+            "dominant_theme": combined_analysis
         })
 
     return response

@@ -48,7 +48,7 @@ services:
       dockerfile: Dockerfile
     container_name: mern_backend
     ports:
-      - "4000:4000"
+      - "3000:3000"
     volumes:
       - ./backend:/app  # Mount backend files to allow live reloading
       - /app/node_modules  # Prevent overwriting node_modules
