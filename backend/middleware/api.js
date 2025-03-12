@@ -1,4 +1,5 @@
-const validApiKey = "your_secret_api_key_here"; // actual API key
+require('dotenv').config();
+const validApiKey = process.env.API_KEY;
 
 const apiMiddleware = (req, res, next) => {
   const apiKey = req.headers["x-api-key"];

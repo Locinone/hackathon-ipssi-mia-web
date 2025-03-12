@@ -2,10 +2,12 @@ from flask import Flask, request, jsonify
 import gensim
 from controllers.preprocessing import preprocess_text, analyze_list_text, add_themes_and_scores_to_db
 from middleware.apikey import require_api_key
+from dotenv import load_dotenv
+import os
 
 app = Flask(__name__)
-
-API_KEY = 'your_secret_api_key_here'
+load_dotenv()
+API_KEY = os.getenv('API_KEY')
 
 @app.route('/api-key', methods=['GET'])
 def get_api_key():
