@@ -4,8 +4,10 @@ from controllers.preprocessing import preprocess_text, analyze_list_text, add_th
 from middleware.apikey import require_api_key
 from dotenv import load_dotenv
 import os
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 load_dotenv()
 API_KEY = os.getenv('API_KEY')
 

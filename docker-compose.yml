@@ -39,6 +39,8 @@ services:
     volumes:
       - ./backend:/app  # Mount backend files to allow live reloading
       - /app/node_modules  # Prevent overwriting node_modules
+    environment:
+      - MONGODB_URI=mongodb://root:password@mongo:27017/hackaton-mia-2025?authSource=admin
     depends_on:
       - mongo
     networks:
