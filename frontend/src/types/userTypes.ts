@@ -2,15 +2,20 @@ export interface User {
     id: number;
     name: string;
     username: string;
-    displayName: string;
-    bio?: string;
+    email: string;
+    password?: string;
+    biography?: string;
     location?: string;
-    website?: string;
-    joinDate: string;
-    following: number;
-    followers: number;
-    bannerImage?: string;
-    profileImage?: string;
+    link?: string;
+    image?: string;
+    banner?: string;
+    role: string;
+    acceptNotification: boolean;
+    acceptTerms: boolean;
+    acceptCamera: boolean;
+    followers: string[];
+    following: string[];
+    createdAt: string;
 }
 
 export interface LoginData {

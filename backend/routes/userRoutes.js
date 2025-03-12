@@ -2,7 +2,7 @@ const express = require("express");
 const userController = require("../controllers/userController");
 const { authenticateJWT } = require("../middleware/auth");
 const zodValidator = require("../middleware/zodValidator");
-const { registerSchema } = require("../validators/authSchemas");
+const { registerSchema, updateUserSchema } = require("../validators/authSchemas");
 const verifyAccess = require("../middleware/verifyAccess");
 const upload = require("../middleware/upload");
 const User = require('../models/User');
@@ -19,9 +19,10 @@ router.post("/register",
     userController.register
 );
 router.get("/getusers", userController.getUsers);
-router.put("/update/:id", authenticateJWT, verifyAccess("admin"), userController.updateUser);
+router.put("/update", authenticateJWT, zodValidator(updateUserSchema, 'body'), userController.updateUser);
 router.delete("/delete/:id", authenticateJWT, verifyAccess("admin"), userController.deleteUser);
 router.get("/me", authenticateJWT, userController.getCurrentUser);
 router.post("/follow/:id", authenticateJWT, userController.followUser);
 router.post("/unfollow/:id", authenticateJWT, userController.unfollowUser);
+router.get('/profile/:username', userController.getUserProfile);
 module.exports = router;

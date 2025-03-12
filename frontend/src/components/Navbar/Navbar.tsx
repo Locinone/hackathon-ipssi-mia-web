@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useAuthStore } from '@/store/authStore';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { motion } from 'framer-motion';
@@ -19,6 +20,7 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
     const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuthStore();
     const createPostRef = useRef<HTMLDivElement>(null);
     const { color1, color2 } = useColorStore();
 
@@ -147,6 +149,14 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                                 animate={{ opacity: 1, y: 0 }}
                                 className="absolute right-0 mt-2 w-48 bg-black/80 backdrop-blur-md rounded-lg shadow-lg py-2 z-20"
                             >
+                                <motion.button
+                                    whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                                    onClick={() => navigateTo(`/profile/${user?.username}`)}
+                                    className="flex items-center gap-2 w-full px-4 py-2 text-white text-left"
+                                >
+                                    <User size={18} />
+                                    <span>Mon Profil</span>
+                                </motion.button>
                                 <motion.button
                                     whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
                                     onClick={handleLogout}

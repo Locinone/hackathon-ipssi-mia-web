@@ -16,6 +16,7 @@ const userSchema = new mongoose.Schema({
   acceptCamera: { type: Boolean, default: false },
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  createdAt: { type: Date, default: Date.now },
 });
 
 const User = mongoose.model("User", userSchema);
