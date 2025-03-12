@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 import gensim
-from controllers.preprocessing import preprocess_text, analyze_list_text, add_themes_and_scores_to_db
+from controllers.preprocessing import preprocess_text, analyze_list_text
 from middleware.apikey import require_api_key
 from dotenv import load_dotenv
 import os
@@ -35,18 +35,15 @@ def preprocess_text_route():
 def analyze_text_route():
     try:
         data = request.json
-        if 'text' not in data or 'post_id' not in data or 'user_id' not in data:
+        if 'text' not in data:
             return jsonify({'error': 'Missing required fields'}), 400
         if data['text'] == [""]:
             return jsonify({'error': 'Empty array provided'}), 422
         text = data.get("text", "")
-        post = data.get("post_id", "")
-        user = data.get("user_id", "")
-        processed_text = analyze_list_text(text, post)
-        add_themes_and_scores_to_db(processed_text, post, user)
+        processed_text = analyze_list_text(text)
         return jsonify({"processed_text": processed_text})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5010)
+    app.run(debug=True, port=5010, host="0.0.0.0")

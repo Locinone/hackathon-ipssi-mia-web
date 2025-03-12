@@ -18,7 +18,7 @@ def preprocess_text(text):
     """Tokenise et enlève les stopwords du texte."""
     return [word for word in simple_preprocess(text) if word not in stop_words]
 
-def analyze_list_text(texts, post):
+def analyze_list_text(texts):
     """Effectue la modélisation des sujets et l'analyse des relations entre les mots."""
     
     # Prétraitement
@@ -71,34 +71,6 @@ def analyze_list_text(texts, post):
         })
 
     return response
-
-async def add_themes_and_scores_to_db(themes, post, user):
-    """Ajoute les thèmes et les scores de sentiment à la base de données."""
-    theme_url = "http://localhost:4000/api/themes/create"
-    score_url = "http://localhost:4000/api/scoreThemes/create"
-    headers = {"Content-Type": "application/json", "x-api-key": f"{API_KEY}"}
-
-    for theme in themes["processed_text"][0]["dominant_theme"]:
-        theme_data = {
-            "name": theme,
-            "post": post,
-        }
-        theme_response = await requests.post(theme_url, json=theme_data, headers=headers)
-        if theme_response.status_code != 201:
-            print(f"Failed to create theme: {theme_response.json()}")
-            continue
-
-        created_theme = theme_response.json()
-        for sentiment in themes["processed_text"][0]["sentiment_analysis"]:
-            score_data = {
-                "theme": created_theme["_id"],
-                "score": sentiment["sentiment"]["compound"] * 100,
-                "post": post,
-                "user": user
-            }
-            score_response = await requests.post(score_url, json=score_data, headers=headers)
-            if score_response.status_code != 201:
-                print(f"Failed to create theme score: {score_response.json()}")
 
 # Exemple
 texts = [
