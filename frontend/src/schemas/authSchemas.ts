@@ -55,5 +55,16 @@ export const registerSchema = z.object({
     }),
 });
 
+export const updateUserSchema = z.object({
+    name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères' }),
+    username: z
+        .string()
+        .min(2, { message: "Le nom d'utilisateur doit contenir au moins 2 caractères" }),
+    location: z.string().optional(),
+    link: z.string().optional(),
+    biography: z.string().optional(),
+});
+
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
+export type UpdateUserFormData = z.infer<typeof updateUserSchema>;
