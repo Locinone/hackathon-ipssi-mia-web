@@ -47,7 +47,6 @@ const login = async (req, res) => {
 
 const register = async (req, res) => {
   try {
-
     const { name, username, email, password, acceptNotification, acceptCamera, acceptTerms } = req.body;
 
     let existingUser = await User.findOne({ $or: [{ email }, { username }] });
@@ -73,7 +72,8 @@ const register = async (req, res) => {
       banner: req.files.banner ? `/uploads/${req.files.banner[0].filename}` : '',
       acceptNotification: acceptNotification === 'true',
       acceptCamera: acceptCamera === 'true',
-      acceptTerms: acceptTerms === 'true'
+      acceptTerms: acceptTerms === 'true',
+      createdAt: new Date()
     });
 
     // Sauvegarder l'utilisateur
@@ -87,7 +87,8 @@ const register = async (req, res) => {
         name: newUser.name,
         username: newUser.username,
         email: newUser.email,
-        image: newUser.image
+        image: newUser.image,
+        createdAt: newUser.createdAt
       }
     });
   } catch (error) {
@@ -179,33 +180,15 @@ const getUsers = async (req, res) => {
 
 const updateUser = async (req, res) => {
   const userId = req.user.id;
-  try {
-    if (req.params.id !== userId) {
-      return res
-        .status(403)
-        .send("Vous n'êtes pas autorisé à modifier cet utilisateur");
-    }
+  const { name, username, email, password, acceptNotification, acceptCamera, acceptTerms } = req.body;
 
-    if (req.body.password) {
-      req.body.password = await bcrypt.hash(req.body.password, 10);
-    }
+  const user = await User.findByIdAndUpdate(userId, req.body, { new: true }).select("-password");
 
-    const updateData = { ...req.body };
-    if (req.body.image) {
-      updateData.image = req.body.image;
-    }
-
-    const user = await User.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
-    }).select("-password");
-
-    if (!user) {
-      return jsonResponse(res, "Utilisateur introuvable", 404, null);
-    }
-    jsonResponse(res, user, 200, null);
-  } catch (error) {
-    jsonResponse(res, error.message, 500, null);
+  if (!user) {
+    return jsonResponse(res, "Utilisateur introuvable", 404, null);
   }
+  
+  jsonResponse(res, user, 200, null);
 };
 
 const deleteUser = async (req, res) => {
@@ -235,4 +218,17 @@ const getCurrentUser = async (req, res) => {
   jsonResponse(res, "Utilisateur récupéré", 200, user);
 };
 
-module.exports = { login, register, updateUser, deleteUser, getUsers, getCurrentUser, followUser, unfollowUser };
+const getUserProfile = async (req, res) => {
+  try {
+    const { username } = req.params;
+    const user = await User.findOne({ username }).select('-password');
+    if (!user) {
+      return jsonResponse(res, 'Utilisateur introuvable', 404, null);
+    }
+    jsonResponse(res, 'Profil utilisateur récupéré', 200, user);
+  } catch (error) {
+    jsonResponse(res, error.message, 500, null);
+  }
+};
+
+module.exports = { login, register, updateUser, deleteUser, getUsers, getCurrentUser, followUser, unfollowUser, getUserProfile };

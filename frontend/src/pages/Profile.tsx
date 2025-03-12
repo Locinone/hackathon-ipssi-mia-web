@@ -4,117 +4,31 @@ import { useParams } from 'react-router-dom';
 import { Calendar, Link as LinkIcon, MapPin } from 'lucide-react';
 
 import Posts from '../components/Posts/Posts';
+import ProfileEditForm from '../components/ProfileEditForm';
+import Loader from '../components/ui/Loader';
+import { updateUserSchema } from '../schemas/authSchemas';
+import { api } from '../services/api';
+import { useUpdateUserProfile, useUserProfile } from '../services/queries/useUserProfile';
 
-// Données fictives pour démonstration
-const userData = {
-    id: 1,
-    username: 'JohnDoe',
-    displayName: 'John Doe',
-    bio: "Développeur web passionné | Fan de tech et de design | Toujours en quête d'apprentissage",
-    location: 'Paris, France',
-    website: 'johndoe.dev',
-    joinDate: 'Juin 2022',
-    following: 245,
-    followers: 532,
-    bannerImage:
-        'https://images.unsplash.com/photo-1741334632363-58022899ce91?q=80&w=2564&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    profileImage:
-        'https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80',
-};
-
-const userPosts = [
-    {
-        id: 1,
-        content:
-            "Les #chiens c'est bien, mais les #chats c'est mieux. Ils sont indépendants, propres et parfaits compagnons pour les moments calmes.",
-        author: 'John Doe',
-        date: '24/08/2023',
-        likes: 10,
-        comments: 5,
-        repeat: 2,
-    },
-    {
-        id: 2,
-        content:
-            "La #programmation est une forme d'art. Chaque ligne de #code raconte une histoire, chaque fonction résout un problème.",
-        author: 'John Doe',
-        date: '15/09/2023',
-        likes: 42,
-        comments: 8,
-        repeat: 15,
-        mediaItems: [
-            {
-                type: 'image',
-                url: 'https://images.unsplash.com/photo-1587620962725-abab7fe55159?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-            },
-        ],
-    },
-];
-
-const userComments = [
-    {
-        id: 1,
-        content:
-            "Totalement d'accord ! Le développement front-end est un mélange parfait d'art et de logique.",
-        author: 'John Doe',
-        date: '05/10/2023',
-        likes: 8,
-        replyTo: 'Jane Smith',
-        postId: 3,
-    },
-    {
-        id: 2,
-        content:
-            "C'est une perspective intéressante. J'aime voir comment différentes technologies peuvent être combinées pour créer des solutions innovantes.",
-        author: 'John Doe',
-        date: '12/10/2023',
-        likes: 15,
-        replyTo: 'Tech Explorer',
-        postId: 5,
-    },
-];
-
-const userLikes = [
-    {
-        id: 3,
-        content:
-            "Le #voyage élargit l'esprit et nourrit l'âme. Découvrir de nouvelles #cultures est la plus belle des éducations.",
-        author: 'Marc Dupont',
-        date: '03/05/2023',
-        likes: 87,
-        comments: 12,
-        repeat: 23,
-    },
-    {
-        id: 4,
-        content: 'Regardez cette incroyable vidéo de #nature! #vidéo #découverte',
-        author: 'Emma Naturelle',
-        date: '12/06/2023',
-        likes: 156,
-        comments: 34,
-        repeat: 67,
-        mediaType: 'video',
-        mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    },
-];
-
-const userDislikes = [
-    {
-        id: 5,
-        content:
-            "Le marketing digital est plus important que jamais dans le monde d'aujourd'hui. #marketing #digital",
-        author: 'Marketing Pro',
-        date: '22/09/2023',
-        likes: 32,
-        comments: 7,
-        repeat: 5,
-    },
-];
+// Les données mockées userPosts, userComments, userLikes, userDislikes restent inchangées
 
 const Profile = () => {
     const { username } = useParams();
     const [activeTab, setActiveTab] = useState('posts');
     const [isScrolled, setIsScrolled] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [formData, setFormData] = useState({
+        name: '',
+        username: '',
+        biography: '',
+        location: '',
+        link: '',
+    });
+
+    const { data: userData, isLoading, error } = useUserProfile(username);
+    const { mutate: updateUserProfile, isPending: isUpdating } = useUpdateUserProfile();
+
+    const baseUrl = api.getUrl();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -125,6 +39,62 @@ const Profile = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    useEffect(() => {
+        console.log('Données utilisateur récupérées:', userData);
+        if (userData) {
+            setFormData({
+                name: userData.name || '',
+                username: userData.username || '',
+                biography: userData.biography || '',
+                location: userData.location || '',
+                link: userData.link || '',
+            });
+        }
+    }, [userData]);
+
+    useEffect(() => {
+        if (isModalOpen) {
+            console.log('Contenu du formulaire:', formData);
+        }
+    }, [isModalOpen, formData]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
+    };
+
+    const handleSubmit = async () => {
+        const parsedData = updateUserSchema.safeParse(formData);
+        console.log(parsedData);
+        if (!parsedData.success) {
+            console.error('Erreur de validation:', parsedData.error.format());
+            return;
+        }
+        try {
+            updateUserProfile(parsedData.data, {
+                onSuccess: () => {
+                    setIsModalOpen(false);
+                },
+            });
+        } catch (error) {
+            console.error('Erreur lors de la mise à jour du profil:', error);
+        }
+    };
+
+    if (isLoading) {
+        return <Loader />;
+    }
+
+    if (error || !userData) {
+        return (
+            <div className="w-full min-h-screen bg-black flex items-center justify-center">
+                <p className="text-red-500">
+                    {error instanceof Error ? error.message : 'Profil non trouvé'}
+                </p>
+            </div>
+        );
+    }
+
     return (
         <div className="w-full min-h-screen bg-black">
             <div className="relative px-32 pt-32">
@@ -132,7 +102,7 @@ const Profile = () => {
                     <div className="relative flex flex-col gap-4">
                         <div className="h-48 w-full overflow-hidden">
                             <img
-                                src={userData.bannerImage}
+                                src={`${baseUrl}${userData.banner}`}
                                 alt="Bannière de profil"
                                 className="w-full h-full object-cover rounded-lg"
                             />
@@ -141,18 +111,24 @@ const Profile = () => {
                         <div className="absolute -bottom-16 right-4 md:right-10">
                             <div className="w-32 h-32 rounded-full border-4 border-black overflow-hidden">
                                 <img
-                                    src={userData.profileImage}
+                                    src={`${baseUrl}${userData.image}`}
                                     alt="Photo de profil"
                                     className="w-full h-full object-cover"
                                 />
                             </div>
                         </div>
                     </div>
+                    <button
+                        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                        onClick={() => setIsModalOpen(true)}
+                    >
+                        Modifier le profil
+                    </button>
                     <div className="px-4">
-                        <h1 className="text-2xl font-bold text-white">{userData.displayName}</h1>
-                        <p className="text-gray-500">@{userData.username}</p>
+                        <h1 className="text-2xl font-bold text-white">{userData.name}</h1>
+                        <p className="text-gray-500">{userData.username}</p>
 
-                        <p className="my-3 text-white">{userData.bio}</p>
+                        <p className="my-3 text-white">{userData.biography}</p>
 
                         <div className="flex flex-wrap gap-4 text-sm text-gray-500 my-3">
                             {userData.location && (
@@ -161,30 +137,39 @@ const Profile = () => {
                                     <span>{userData.location}</span>
                                 </div>
                             )}
-                            {userData.website && (
+                            {userData.link && (
                                 <div className="flex items-center gap-1">
                                     <LinkIcon size={16} />
                                     <a
-                                        href={`https://${userData.website}`}
+                                        href={`https://${userData.link}`}
                                         className="text-blue-500 hover:underline"
                                     >
-                                        {userData.website}
+                                        {userData.link}
                                     </a>
                                 </div>
                             )}
                             <div className="flex items-center gap-1">
                                 <Calendar size={16} />
-                                <span>A rejoint en {userData.joinDate}</span>
+                                <span>
+                                    Profil créé le{' '}
+                                    {userData?.createdAt
+                                        ? new Date(userData.createdAt).toLocaleDateString()
+                                        : 'Date inconnue'}
+                                </span>
                             </div>
                         </div>
 
                         <div className="flex gap-4 my-3">
                             <div>
-                                <span className="font-bold text-white">{userData.following}</span>{' '}
+                                <span className="font-bold text-white">
+                                    {userData.following.length}
+                                </span>{' '}
                                 <span className="text-gray-500">abonnements</span>
                             </div>
                             <div>
-                                <span className="font-bold text-white">{userData.followers}</span>{' '}
+                                <span className="font-bold text-white">
+                                    {userData.followers.length}
+                                </span>{' '}
                                 <span className="text-gray-500">abonnés</span>
                             </div>
                         </div>
@@ -209,6 +194,15 @@ const Profile = () => {
                 </div>
 
                 <div className="mt-4">{activeTab === 'posts' && <Posts userProfile />}</div>
+
+                {isModalOpen && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
+                        <div className="bg-white p-6 rounded shadow-lg w-96">
+                            <h2 className="text-xl font-bold mb-4">Modifier le profil</h2>
+                            <ProfileEditForm onSubmit={handleSubmit} initialData={formData} />
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

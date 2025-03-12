@@ -6,7 +6,7 @@ class Interceptor {
     private url: string;
 
     constructor() {
-        this.url = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:4000';
+        this.url = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:3000';
         console.log('API Base URL:', this.url);
     }
 

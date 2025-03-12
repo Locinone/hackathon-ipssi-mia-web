@@ -23,8 +23,25 @@ class UserService {
         return response;
     }
 
+    public async getUserProfile(username: string): Promise<ApiResponse<User>> {
+        const response = await api.fetchRequest(`${this.apiUrl}/profile/${username}`, 'GET');
+        return response;
+    }
+
     public async logoutUser(): Promise<ApiResponse<void>> {
         const response = await api.fetchRequest(`${this.apiUrl}/logout`, 'POST');
+        return response;
+    }
+
+    public async updateUserProfile(
+        data: Partial<User>
+    ): Promise<ApiResponse<User>> {
+        const response = await api.fetchRequest(
+            `${this.apiUrl}/update`,
+            'PUT',
+            data,
+            true
+        );
         return response;
     }
 }
