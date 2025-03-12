@@ -179,16 +179,38 @@ const getUsers = async (req, res) => {
 };
 
 const updateUser = async (req, res) => {
-  const userId = req.user.id;
-  const { name, username, email, password, acceptNotification, acceptCamera, acceptTerms } = req.body;
+  try {
+    const userId = req.user.id;
+    const updateData = req.body;
 
-  const user = await User.findByIdAndUpdate(userId, req.body, { new: true }).select("-password");
+    console.log("Données reçues pour mise à jour:", updateData);
 
-  if (!user) {
-    return jsonResponse(res, "Utilisateur introuvable", 404, null);
+    // Mise à jour de l'utilisateur
+    const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true });
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        status: 404,
+        message: "Utilisateur non trouvé",
+        data: null
+      });
+    }
+
+    console.log("Utilisateur mis à jour:", updatedUser);
+
+    return res.status(200).json({
+      status: 200,
+      message: "Utilisateur mis à jour avec succès",
+      data: updatedUser
+    });
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour:", error);
+    return res.status(500).json({
+      status: 500,
+      message: `Erreur lors de la mise à jour de l'utilisateur: ${error.message}`,
+      data: null
+    });
   }
-  
-  jsonResponse(res, user, 200, null);
 };
 
 const deleteUser = async (req, res) => {

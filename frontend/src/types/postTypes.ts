@@ -6,7 +6,7 @@ export interface MediaItem {
 }
 
 export interface Post {
-    id?: number;
+    _id?: string;
     content: string;
     author: User;
     date: string;
@@ -14,7 +14,13 @@ export interface Post {
     dislikes: User[];
     comments: User[];
     repeat: User[];
+    shares: User[];
+    hasLiked: boolean;
+    hasDisliked: boolean;
+    hasShared: boolean;
+    hasBookmarked: boolean;
     files?: string[];
+    createdAt: string;
 }
 
 export interface PostFormData {

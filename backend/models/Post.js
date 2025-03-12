@@ -9,6 +9,7 @@ const postSchema = new mongoose.Schema({
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "Like" }],
   dislikes: [{ type: mongoose.Schema.Types.ObjectId, ref: "Dislike" }],
   themes: [{ type: mongoose.Schema.Types.ObjectId, ref: "Theme" }],
+  shares: [{ type: mongoose.Schema.Types.ObjectId, ref: "Share" }],
   createdAt: { type: Date, default: Date.now },
 });
 

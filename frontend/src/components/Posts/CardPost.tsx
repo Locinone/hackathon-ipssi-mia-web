@@ -1,4 +1,14 @@
-import { User } from '@/types';
+import {
+    useCreateBookmark,
+    useCreateRetweet,
+    useDeleteBookmark,
+    useDeleteRetweet,
+    useDislikePost,
+    useLikePost,
+    useUndislikePost,
+    useUnlikePost,
+} from '@/services/queries/interactionQueries';
+import { Post } from '@/types';
 
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -13,31 +23,26 @@ import {
     User as UserIcon,
 } from 'lucide-react';
 
-function CardPost({
-    content = 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.',
-    author,
-    date = new Date().toLocaleDateString(),
-    repeat = [],
-    likes = [],
-    dislikes = [],
-    comments = [],
-    files = [],
-}: {
-    content: string;
-    author: User;
-    date: string;
-    repeat: User[];
-    likes: User[];
-    dislikes: User[];
-    comments: User[];
-    files: string[];
-}) {
+function CardPost({ post }: { post: Post }) {
     const [hashtags, setHashtags] = useState<string[] | null>(null);
+    const [openComments, setOpenComments] = useState(false);
+
+    const { mutate: createLike } = useLikePost();
+    const { mutate: createDislike } = useDislikePost();
+    const { mutate: createBookmark } = useCreateBookmark();
+    const { mutate: createRetweet } = useCreateRetweet();
+
+    const { mutate: deleteLike } = useUnlikePost();
+    const { mutate: deleteDislike } = useUndislikePost();
+    const { mutate: deleteBookmark } = useDeleteBookmark();
+    const { mutate: deleteRetweet } = useDeleteRetweet();
+
+    if (!post) return null;
 
     useEffect(() => {
-        const hashtags = content.match(/#\w+/g);
+        const hashtags = post.content.match(/#\w+/g);
         setHashtags(hashtags);
-    }, [content]);
+    }, [post.content]);
 
     const getTextSizeClass = (text: string) => {
         if (!text) return 'text-7xl';
@@ -71,10 +76,10 @@ function CardPost({
         <div className="w-full h-full flex flex-col items-start text-white">
             <div className="px-4 sm:px-8 md:px-16 lg:px-24 flex flex-col gap-6 md:gap-10 w-full">
                 <div
-                    className={`${files && files.length > 0 ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : ''}`}
+                    className={`${post.files && post.files.length > 0 ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : ''}`}
                 >
                     {/* Contenu texte */}
-                    {content && (
+                    {post.content && (
                         <div className="flex flex-col gap-10">
                             <div className="flex items-center gap-4">
                                 <motion.div
@@ -86,20 +91,20 @@ function CardPost({
                                 <div className="flex flex-row gap-3">
                                     <div className="flex flex-col gap-[-20em]">
                                         <h3 className="text-xl sm:text-2xl font-bold">
-                                            {author.name}
+                                            {post.author.name}
                                         </h3>
-                                        <Link to={`/profile/${author.username}`}>
+                                        <Link to={`/profile/${post.author.username}`}>
                                             <p className="text-sm sm:text-lg hover:underline">
-                                                {author.username}
+                                                {post.author.username}
                                             </p>
                                         </Link>
                                     </div>
                                 </div>
                             </div>
                             <h2
-                                className={`${getTextSizeClass(content)} font-bold leading-tight text-left ${files && files.length > 0 ? 'col-span-1' : ''}`}
+                                className={`${getTextSizeClass(post.content)} font-bold leading-tight text-left ${post.files && post.files.length > 0 ? 'col-span-1' : ''}`}
                             >
-                                {content}
+                                {post.content}
                             </h2>
 
                             {/* Hashtags */}
@@ -120,55 +125,68 @@ function CardPost({
                             {/* Actions */}
                             <div className="flex flex-row justify-between items-center gap-4 sm:gap-10">
                                 <div className="flex flex-row justify-between items-center gap-4 sm:gap-10 py-2 px-2 sm:px-4 rounded-full text-white">
-                                    <motion.div
+                                    <motion.button
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
+                                        onClick={() => {
+                                            createLike(post._id!);
+                                        }}
                                         className="flex flex-row justify-between items-center gap-1 sm:gap-2 cursor-pointer"
                                     >
                                         <ThumbsUp size={24} />
-                                        <p className="text-sm sm:text-lg">{likes.length || 0}</p>
-                                    </motion.div>
-                                    <motion.div
+                                        <p className="text-sm sm:text-lg">
+                                            {post.likes.length || 0}
+                                        </p>
+                                    </motion.button>
+                                    <motion.button
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
                                         className="flex flex-row justify-between items-center gap-1 sm:gap-2 cursor-pointer"
                                     >
                                         <ThumbsDown size={24} />
-                                        <p className="text-sm sm:text-lg">{dislikes.length || 0}</p>
-                                    </motion.div>
-                                    <motion.div
+                                        <p className="text-sm sm:text-lg">
+                                            {post.dislikes.length || 0}
+                                        </p>
+                                    </motion.button>
+                                    <motion.button
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
                                         className="flex flex-row justify-between items-center gap-1 sm:gap-2 cursor-pointer"
                                     >
                                         <MessageCircle size={24} />
-                                        <p className="text-sm sm:text-lg">{comments.length || 0}</p>
-                                    </motion.div>
-                                    <motion.div
+                                        <p className="text-sm sm:text-lg">
+                                            {post.comments.length || 0}
+                                        </p>
+                                    </motion.button>
+                                    <motion.button
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
                                         className="flex flex-row justify-between items-center gap-1 sm:gap-2 cursor-pointer"
                                     >
                                         <Repeat size={24} />
-                                        <p className="text-sm sm:text-lg">{repeat.length || 0}</p>
-                                    </motion.div>
-                                    <motion.div
+                                        <p className="text-sm sm:text-lg">
+                                            {post.shares.length || 0}
+                                        </p>
+                                    </motion.button>
+                                    <motion.button
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
                                         className="flex flex-row justify-between items-center gap-1 sm:gap-2 cursor-pointer"
                                     >
                                         <Bookmark size={24} />
-                                    </motion.div>
-                                    <p className="m-0 text-sm sm:text-lg">{timeAgo(date)}</p>
+                                    </motion.button>
+                                    <p className="m-0 text-sm sm:text-lg">
+                                        {timeAgo(post.createdAt)}
+                                    </p>
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {/* Média (image ou vidéo) au format grid */}
-                    {files && files.length > 0 && (
+                    {post.files && post.files.length > 0 && (
                         <div className="w-3/4 mx-auto grid grid-cols-2 gap-2 rounded-xl overflow-hidden col-span-1">
-                            {files.map((item, index) => (
+                            {post.files.map((item, index) => (
                                 <motion.div
                                     key={index}
                                     whileHover={{ scale: 1.02 }}
