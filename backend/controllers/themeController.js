@@ -12,7 +12,9 @@ const createTheme = async (req, res) => {
     let existingTheme = await Theme.findOne({ name });
 
     if (existingTheme) {
-      return res.status(400).send("Ce thème existe déjà");
+      existingTheme.posts.push(req.body.postId);
+      await existingTheme.save();
+      return res.status(200).send(existingTheme);
     }
 
     const theme = new Theme({ name });
