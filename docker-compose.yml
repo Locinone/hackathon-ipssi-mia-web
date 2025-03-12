@@ -12,6 +12,19 @@ services:
       - mongo_data:/data/db
     networks:
       - mern_network
+  
+  backend-flask:
+    container_name: ai-backend
+    restart: always
+    ports:
+      - "5050:5050"
+    build:
+      context: ./backend_fer
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend_fer:/app
+    networks:
+      - mern_network
 
   nlp:
     build:
@@ -57,6 +70,7 @@ services:
       - "5173:5173"
     depends_on:
       - backend
+      - backend-flask
     networks:
       - mern_network
 
