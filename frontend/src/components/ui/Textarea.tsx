@@ -4,6 +4,7 @@ interface TextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>
     onChange?: (e: ChangeEvent<HTMLTextAreaElement>) => void;
     label?: string;
     highlightHashtags?: boolean;
+    error?: string;
 }
 
 const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
@@ -20,6 +21,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             rows = 4,
             label = '',
             highlightHashtags = false,
+            error = '',
             ...props
         },
         ref
@@ -44,13 +46,14 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
                     disabled={disabled}
                     required={required}
                     rows={rows}
-                    className={`w-full bg-white border border-gray-200 rounded-lg py-2 px-3 
-                    text-black focus:outline-none focus:ring-2 focus:ring-gray-300 
-                    placeholder-gray-500 transition-colors resize-none
+                    className={`w-full text-white border border-gray-200 rounded-lg py-2 px-3 
+                    focus:outline-none focus:ring-2 focus:ring-gray-300 
+                    placeholder-white transition-colors resize-none
                     ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
                     ${className}`}
                     {...props}
                 />
+                {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
             </div>
         );
     }

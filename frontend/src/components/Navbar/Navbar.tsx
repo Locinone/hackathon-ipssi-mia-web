@@ -1,8 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { motion } from 'framer-motion';
 import { Bookmark, Flame, Home, LogOut, Plus, Search, User } from 'lucide-react';
+
+import { useColorStore } from '@/stores/colorStore';
+
+import CreatePostForm from './CreatePostForm';
 
 interface NavbarProps {
     onPageChange?: (page: string) => void;
@@ -15,10 +19,28 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
     const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+    const createPostRef = useRef<HTMLDivElement>(null);
+    const { color1, color2 } = useColorStore();
 
     useEffect(() => {
         setActivePath(location.pathname);
     }, [location.pathname]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (createPostRef.current && !createPostRef.current.contains(event.target as Node)) {
+                setIsCreatePostOpen(false);
+            }
+        };
+
+        if (isCreatePostOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isCreatePostOpen]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(e.target.value);
@@ -184,6 +206,31 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                     </Link>
                 </motion.div>
             </nav>
+            {isCreatePostOpen && (
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute top-24 right-0 p-6 -translate-x-1/6 w-1/2 h-1/2 z-20"
+                >
+                    <motion.div
+                        className="relative w-1/2"
+                        whileHover={{ scale: 1.02 }}
+                        ref={createPostRef}
+                    >
+                        <div
+                            className="absolute -inset-2 rounded-sm opacity-75 blur"
+                            style={{
+                                background: `linear-gradient(to right, ${color1}, ${color2})`,
+                            }}
+                        ></div>
+                        <motion.div className="relative p-3 bg-black/70 backdrop-blur-sm rounded-lg">
+                            <CreatePostForm />
+                        </motion.div>
+                    </motion.div>
+                </motion.div>
+            )}
         </>
     );
 };

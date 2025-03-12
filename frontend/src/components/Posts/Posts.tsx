@@ -1,107 +1,27 @@
+import { Post, User } from '@/types';
+
 import React, { Fragment, useEffect, useRef, useState } from 'react';
 
 import { AnimatePresence, motion } from 'framer-motion';
 
+import { useColorStore } from '@/stores/colorStore';
+
 import CardPost from './CardPost';
 
-const postsData = [
-    {
-        content:
-            "Les #chiens c'est bien, mais les #chats c'est mieux. Ils sont indépendants, propres et parfaits compagnons pour les moments calmes.",
-        author: 'John Doe',
-        date: '24/08/2002',
-        likes: 10,
-        comments: 5,
-        repeat: 2,
-    },
-    {
-        content:
-            "La #programmation est une forme d'art. Chaque ligne de #code raconte une histoire, chaque fonction résout un problème.",
-        author: 'Jane Smith',
-        date: '15/09/2023',
-        likes: 42,
-        comments: 8,
-        repeat: 15,
-        mediaItems: [
-            {
-                type: 'image',
-                url: 'https://images.unsplash.com/photo-1587620962725-abab7fe55159?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-            },
-            {
-                type: 'image',
-                url: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-            },
-        ],
-    },
-    {
-        content:
-            "Le #voyage élargit l'esprit et nourrit l'âme. Découvrir de nouvelles #cultures est la plus belle des éducations.",
-        author: 'Marc Dupont',
-        date: '03/05/2023',
-        likes: 87,
-        comments: 12,
-        repeat: 23,
-    },
-    {
-        content: 'Regardez cette incroyable vidéo de #nature! #vidéo #découverte',
-        author: 'Emma Naturelle',
-        date: '12/06/2023',
-        likes: 156,
-        comments: 34,
-        repeat: 67,
-        mediaType: 'video',
-        mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    },
-    {
-        content: 'Ma collection de photos de #voyage de cet été! #photographie #souvenirs',
-        author: 'Voyageur Pro',
-        date: '05/09/2023',
-        likes: 234,
-        comments: 45,
-        repeat: 78,
-        mediaItems: [
-            {
-                type: 'image',
-                url: 'https://images.unsplash.com/photo-1502791451862-7bd8c1df43a7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-            },
-            {
-                type: 'image',
-                url: 'https://images.unsplash.com/photo-1500835556837-99ac94a94552?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-            },
-            {
-                type: 'image',
-                url: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-            },
-            {
-                type: 'video',
-                url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-            },
-        ],
-    },
-];
-
-function Posts({ userProfile = false }) {
+function Posts({ userProfile = false, postsData }: { userProfile: boolean; postsData: Post[] }) {
     const containerRef = useRef(null);
-    const [gradient, setGradient] = useState('');
     const [currentPostIndex, setCurrentPostIndex] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [currentPage, setCurrentPage] = useState('home'); // 'home' ou 'search'
     const touchStartY = useRef(0);
     const touchEndY = useRef(0);
 
-    const generateRandomGradient = () => {
-        const baseHue = Math.floor(Math.random() * 360);
-
-        const color1 = `hsl(${baseHue}, 80%, 40%)`;
-        const color2 = `hsl(${(baseHue + 30) % 360}, 80%, 70%)`;
-        const color3 = `hsl(${(baseHue + 15) % 360}, 80%, 30%)`;
-
-        return `linear-gradient(${Math.floor(Math.random() * 360)}deg, ${color1} 0%, ${color2} 50%, ${color3} 100%)`;
-    };
+    // Utiliser le store de couleurs
+    const { gradient, generateRandomGradient } = useColorStore();
 
     useEffect(() => {
-        setGradient(generateRandomGradient());
-    }, []);
+        generateRandomGradient();
+    }, [generateRandomGradient]);
 
     const goToNextPost = () => {
         if (isTransitioning || currentPage !== 'home') return;
@@ -112,7 +32,7 @@ function Posts({ userProfile = false }) {
         setCurrentPostIndex((prevIndex) => (prevIndex + 1) % postsData.length);
 
         // Générer un nouveau gradient
-        setGradient(generateRandomGradient());
+        generateRandomGradient();
 
         // Remonter en haut de la page après un court délai
         setTimeout(() => {
@@ -135,11 +55,11 @@ function Posts({ userProfile = false }) {
     };
 
     // Gestion des événements tactiles pour le swipe
-    const handleTouchStart = (e) => {
+    const handleTouchStart = (e: React.TouchEvent) => {
         touchStartY.current = e.touches[0].clientY;
     };
 
-    const handleTouchMove = (e) => {
+    const handleTouchMove = (e: React.TouchEvent) => {
         touchEndY.current = e.touches[0].clientY;
     };
 
@@ -157,7 +77,7 @@ function Posts({ userProfile = false }) {
 
     useEffect(() => {
         // Utiliser une fonction pour détecter le scroll vers le bas
-        const handleScrollDown = (event) => {
+        const handleScrollDown = (event: WheelEvent) => {
             // Vérifier si l'utilisateur scrolle vers le bas
             if (event.deltaY > 100) {
                 console.log('Scroll vers le bas détecté');
@@ -172,16 +92,16 @@ function Posts({ userProfile = false }) {
         window.addEventListener('scroll', handleScroll);
 
         // Événements tactiles pour le swipe
-        window.addEventListener('touchstart', handleTouchStart);
-        window.addEventListener('touchmove', handleTouchMove);
+        window.addEventListener('touchstart', handleTouchStart as unknown as EventListener);
+        window.addEventListener('touchmove', handleTouchMove as unknown as EventListener);
         window.addEventListener('touchend', handleTouchEnd);
 
         // Nettoyage des événements
         return () => {
             window.removeEventListener('wheel', handleScrollDown);
             window.removeEventListener('scroll', handleScroll);
-            window.removeEventListener('touchstart', handleTouchStart);
-            window.removeEventListener('touchmove', handleTouchMove);
+            window.removeEventListener('touchstart', handleTouchStart as unknown as EventListener);
+            window.removeEventListener('touchmove', handleTouchMove as unknown as EventListener);
             window.removeEventListener('touchend', handleTouchEnd);
         };
     }, [isTransitioning, currentPage]);
@@ -209,12 +129,13 @@ function Posts({ userProfile = false }) {
                         <div className="w-full">
                             <CardPost
                                 content={currentPost.content}
-                                author={currentPost.author}
+                                author={currentPost.author as unknown as User}
                                 date={currentPost.date}
                                 likes={currentPost.likes}
+                                dislikes={currentPost.dislikes}
                                 comments={currentPost.comments}
                                 repeat={currentPost.repeat}
-                                mediaItems={currentPost.mediaItems}
+                                files={currentPost.files ? currentPost.files : []}
                             />
                         </div>
                     </motion.div>

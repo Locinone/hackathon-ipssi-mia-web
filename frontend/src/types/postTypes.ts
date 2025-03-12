@@ -1,3 +1,5 @@
+import { User } from './userTypes';
+
 export interface MediaItem {
     type: 'image' | 'video';
     url: string;
@@ -6,12 +8,13 @@ export interface MediaItem {
 export interface Post {
     id?: number;
     content: string;
-    author: string;
+    author: User;
     date: string;
-    likes: number;
-    comments: number;
-    repeat: number;
-    mediaItems?: MediaItem[];
+    likes: User[];
+    dislikes: User[];
+    comments: User[];
+    repeat: User[];
+    files?: string[];
 }
 
 export interface PostFormData {
