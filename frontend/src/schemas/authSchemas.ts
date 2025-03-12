@@ -59,7 +59,8 @@ export const updateUserSchema = z.object({
     name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères' }),
     username: z
         .string()
-        .min(2, { message: "Le nom d'utilisateur doit contenir au moins 2 caractères" }),
+        .min(2, { message: "Le nom d'utilisateur doit contenir au moins 2 caractères" })
+        .regex(/^@/, { message: "Le nom d'utilisateur doit commencer par @" }),
     location: z.string().optional(),
     link: z.string().optional(),
     biography: z.string().optional(),

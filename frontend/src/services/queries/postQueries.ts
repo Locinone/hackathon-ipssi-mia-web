@@ -25,3 +25,16 @@ export const useGetPosts = () => {
         queryFn: () => postService.getPosts(),
     });
 };
+
+export const useGetPostsByUserId = (userId: string | undefined) => {
+    return useQuery({
+        queryKey: ['posts', userId],
+        queryFn: async () => {
+            if (!userId) {
+                return { success: true, message: 'Aucun utilisateur spécifié', data: [] };
+            }
+            return await postService.getPostsByUserId(userId);
+        },
+        enabled: !!userId, // La requête ne s'exécute que si userId existe
+    });
+};

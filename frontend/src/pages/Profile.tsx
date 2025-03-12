@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 import { Calendar, Link as LinkIcon, MapPin } from 'lucide-react';
 
+import UserComments from '../components/Comments/Comments';
 import Posts from '../components/Posts/Posts';
 import ProfileEditForm from '../components/ProfileEditForm';
 import Loader from '../components/ui/Loader';
 import { updateUserSchema } from '../schemas/authSchemas';
 import { api } from '../services/api';
+import { useGetPostsByUserId } from '../services/queries/postQueries';
 import { useUpdateUserProfile, useUserProfile } from '../services/queries/useUserProfile';
 
 // Les données mockées userPosts, userComments, userLikes, userDislikes restent inchangées
@@ -26,6 +29,11 @@ const Profile = () => {
     });
 
     const { data: userData, isLoading, error } = useUserProfile(username);
+    const {
+        data: userPosts,
+        isLoading: isLoadingPosts,
+        error: errorPosts,
+    } = useGetPostsByUserId(userData?._id);
     const { mutate: updateUserProfile, isPending: isUpdating } = useUpdateUserProfile();
 
     const baseUrl = api.getUrl();
@@ -58,26 +66,58 @@ const Profile = () => {
         }
     }, [isModalOpen, formData]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
-    };
+    const handleSubmit = async (updatedFormData: typeof formData) => {
+        const parsedData = updateUserSchema.safeParse(updatedFormData);
 
-    const handleSubmit = async () => {
-        const parsedData = updateUserSchema.safeParse(formData);
-        console.log(parsedData);
         if (!parsedData.success) {
             console.error('Erreur de validation:', parsedData.error.format());
+            toast.error('Erreur de validation des données');
             return;
         }
+
         try {
+            console.log('Données validées envoyées pour mise à jour:', parsedData.data);
+
+            // Afficher un toast de chargement
+            const loadingToast = toast.loading('Mise à jour en cours...');
+
             updateUserProfile(parsedData.data, {
-                onSuccess: () => {
+                onSuccess: (updatedUserData) => {
+                    // Fermer le toast de chargement
+                    toast.dismiss(loadingToast);
+
+                    console.log('Mise à jour réussie, nouvelles données:', updatedUserData);
+
+                    // Fermer la modal
                     setIsModalOpen(false);
+
+                    // Mettre à jour les données du formulaire avec les nouvelles valeurs
+                    if (updatedUserData) {
+                        setFormData({
+                            name: updatedUserData.name || '',
+                            username: updatedUserData.username || '',
+                            biography: updatedUserData.biography || '',
+                            location: updatedUserData.location || '',
+                            link: updatedUserData.link || '',
+                        });
+
+                        // Afficher un message de succès détaillé
+                        toast.success(
+                            `Profil mis à jour avec succès ! Nom: ${updatedUserData.name}, Username: @${updatedUserData.username}`
+                        );
+                    }
+                },
+                onError: (error) => {
+                    // Fermer le toast de chargement
+                    toast.dismiss(loadingToast);
+
+                    console.error('Erreur lors de la mise à jour:', error);
+                    toast.error(`Échec de la mise à jour: ${error.message}`);
                 },
             });
         } catch (error) {
-            console.error('Erreur lors de la mise à jour du profil:', error);
+            console.error('Erreur lors de la soumission:', error);
+            toast.error('Une erreur est survenue lors de la mise à jour du profil');
         }
     };
 
@@ -97,7 +137,19 @@ const Profile = () => {
 
     return (
         <div className="w-full min-h-screen bg-black">
-            <div className="relative px-32 pt-32">
+            <style>
+                {`
+                @keyframes refresh-fade {
+                    0% { opacity: 1; }
+                    50% { opacity: 0.7; }
+                    100% { opacity: 1; }
+                }
+                .refresh-animation {
+                    animation: refresh-fade 0.5s ease-in-out;
+                }
+                `}
+            </style>
+            <div className="relative px-32 pt-32 profile-container">
                 <div className="flex flex-col gap-4">
                     <div className="relative flex flex-col gap-4">
                         <div className="h-48 w-full overflow-hidden">
@@ -118,15 +170,11 @@ const Profile = () => {
                             </div>
                         </div>
                     </div>
-                    <button
-                        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                        onClick={() => setIsModalOpen(true)}
-                    >
-                        Modifier le profil
-                    </button>
                     <div className="px-4">
-                        <h1 className="text-2xl font-bold text-white">{userData.name}</h1>
-                        <p className="text-gray-500">{userData.username}</p>
+                        <div>
+                            <h1 className="text-2xl font-bold text-white">{userData.name}</h1>
+                            <p className="text-gray-500">{userData.username}</p>
+                        </div>
 
                         <p className="my-3 text-white">{userData.biography}</p>
 
@@ -173,6 +221,15 @@ const Profile = () => {
                                 <span className="text-gray-500">abonnés</span>
                             </div>
                         </div>
+
+                        <div className="mt-2">
+                            <button
+                                className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                                onClick={() => setIsModalOpen(true)}
+                            >
+                                Modifier le profil
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div className="border-b border-gray-200 mt-4">
@@ -193,7 +250,36 @@ const Profile = () => {
                     </div>
                 </div>
 
-                <div className="mt-4">{activeTab === 'posts' && <Posts userProfile />}</div>
+                <div className="mt-4">
+                    {activeTab === 'posts' && (
+                        <>
+                            {isLoadingPosts ? (
+                                <Loader />
+                            ) : errorPosts ? (
+                                <div className="text-white p-4 text-center">
+                                    <p>Une erreur est survenue lors du chargement des posts.</p>
+                                </div>
+                            ) : !userPosts || !userPosts.data || userPosts.data.length === 0 ? (
+                                <div className="text-white p-4 text-center">
+                                    <p>Les posts de l'utilisateur seront affichés ici.</p>
+                                </div>
+                            ) : (
+                                <Posts userProfile={true} postsData={userPosts.data} />
+                            )}
+                        </>
+                    )}
+                    {activeTab === 'comments' && <UserComments />}
+                    {activeTab === 'likes' && (
+                        <div className="text-white p-4 text-center">
+                            <p>Les posts aimés par l'utilisateur seront affichés ici.</p>
+                        </div>
+                    )}
+                    {activeTab === 'dislikes' && (
+                        <div className="text-white p-4 text-center">
+                            <p>Les posts non aimés par l'utilisateur seront affichés ici.</p>
+                        </div>
+                    )}
+                </div>
 
                 {isModalOpen && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
