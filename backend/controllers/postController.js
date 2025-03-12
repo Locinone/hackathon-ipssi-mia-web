@@ -1,6 +1,9 @@
 const Post = require("../models/Post");
 const Hashtag = require("../models/Hashtag");
 const Theme = require("../models/Theme");
+const Share = require("../models/Share");
+const Interaction = require("../models/Interaction");
+const Bookmark = require("../models/Bookmark");
 const User = require("../models/User");
 const jsonResponse = require("../utils/jsonResponse");
 const NotificationManager = require("../utils/notificationManager");
@@ -133,6 +136,7 @@ const updatePost = async (req, res) => {
 };
 
 const getPosts = async (req, res) => {
+  const userId = req.user?.id || null;
   try {
     const posts = await Post.find()
       .populate("files")
@@ -140,7 +144,21 @@ const getPosts = async (req, res) => {
       .populate("hashtags", "name")
       .populate("themes", "name")
       .sort({ createdAt: -1 });
-    jsonResponse(res, "Posts récupérés avec succès", 200, posts);
+
+    if (userId) {
+      let newPosts = posts.map(async post => {
+        const hasLiked = await Interaction.find({ post: post._id, user: userId, like: true });
+        const hasDisliked = await Interaction.find({ post: post._id, user: userId, like: false });
+        const hasShared = await Share.find({ post: post._id, user: userId });
+        const hasBookmarked = await Bookmark.find({ post: post._id, user: userId });
+        return { ...post, hasLiked, hasDisliked, hasShared, hasBookmarked };
+      });
+      jsonResponse(res, "Posts récupérés avec succès", 200, newPosts);
+    } else {
+      jsonResponse(res, "Posts récupérés avec succès", 200, posts);
+
+    }
+
   } catch (error) {
     jsonResponse(res, error.message, 500, null);
   }
