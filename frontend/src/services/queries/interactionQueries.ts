@@ -152,16 +152,27 @@ export const useDeleteRetweet = () => {
         },
     });
 };
-
 // Signets (Bookmarks)
 export const useCreateBookmark = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (postId: string) => interactionService.createBookmark(postId),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
-            toast.success('Post ajouté aux signets');
+        mutationFn: async (postId: string) => {
+            await interactionService.createBookmark(postId);
+            return postId;
+        },
+        onSuccess: (postId: string) => {
+            let posts = queryClient.getQueryData<any>(['posts']);
+            // find bookmark by postId, set hasBookmarked to true
+            let postData = posts.data;
+            postData = postData.map((post: any) => {
+                if (post._id === postId) {
+                    post.hasBookmarked = true;
+                }
+                return post;
+            });
+            queryClient.setQueryData(['posts'], { ...posts, data: postData });
+            toast.success('Post ajouré aux signets');
         },
         onError: (error: any) => {
             toast.error(error.message || "Erreur lors de l'ajout aux signets");
@@ -173,8 +184,23 @@ export const useDeleteBookmark = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (postId: string) => interactionService.deleteBookmark(postId),
-        onSuccess: () => {
+        mutationFn: async (postId: string) => {
+            await interactionService.deleteBookmark(postId);
+            return postId;
+        },
+        onSuccess: (postId: string) => {
+            // Mettre à jour le cache des posts
+            let posts = queryClient.getQueryData<any>(['posts']);
+            let postData = posts.data;
+            postData = postData.map((post: any) => {
+                if (post._id === postId) {
+                    post.hasBookmarked = false;
+                }
+                return post;
+            });
+            queryClient.setQueryData(['posts'], { ...posts, data: postData });
+
+            // Invalider le cache des signets
             queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
             toast.success('Post retiré des signets');
         },
@@ -188,5 +214,30 @@ export const useGetUserBookmarks = () => {
     return useQuery({
         queryKey: ['bookmarks'],
         queryFn: () => interactionService.getUserBookmarks(),
+    });
+};
+
+// Followers
+export const useFollowUser = () => {
+    return useMutation({
+        mutationFn: (userId: string) => interactionService.followUser(userId),
+        onSuccess: () => {
+            toast.success('Utilisateur suivi avec succès');
+        },
+        onError: (error: any) => {
+            toast.error(error.message || "Erreur lors de la suivi de l'utilisateur");
+        },
+    });
+};
+
+export const useUnfollowUser = () => {
+    return useMutation({
+        mutationFn: (userId: string) => interactionService.unfollowUser(userId),
+        onSuccess: () => {
+            toast.success('Utilisateur non suivi avec succès');
+        },
+        onError: (error: any) => {
+            toast.error(error.message || "Erreur lors de la non suivi de l'utilisateur");
+        },
     });
 };

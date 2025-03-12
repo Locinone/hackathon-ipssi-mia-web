@@ -133,6 +133,26 @@ class InteractionService {
         const response = await api.fetchRequest(`${this.apiUrl}/bookmarks/user`, 'GET', null, true);
         return response.data;
     }
+
+    public async followUser(userId: string) {
+        const response = await api.fetchRequest(
+            `${this.apiUrl}/followers/${userId}/follow`,
+            'POST',
+            null,
+            true
+        );
+        return response.data;
+    }
+
+    public async unfollowUser(userId: string) {
+        const response = await api.fetchRequest(
+            `${this.apiUrl}/followers/${userId}/unfollow`,
+            'DELETE',
+            null,
+            true
+        );
+        return response.data;
+    }
 }
 
 export const interactionService = new InteractionService();

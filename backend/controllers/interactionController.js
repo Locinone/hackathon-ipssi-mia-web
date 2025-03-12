@@ -1,13 +1,14 @@
-const Interaction = require('../models/Interaction');
-const Post = require('../models/Post');
-const Share = require('../models/Share');
-const Comment = require('../models/Comment');
-const Bookmark = require('../models/Bookmark');
-const NotificationManager = require('../utils/notificationManager');
-const jsonResponse = require('../utils/jsonResponse');
+const Interaction = require("../models/Interaction");
+const Post = require("../models/Post");
+const User = require("../models/User");
+const Share = require("../models/Share");
+const Comment = require("../models/Comment");
+const Bookmark = require("../models/Bookmark");
+const NotificationManager = require("../utils/notificationManager");
+const jsonResponse = require("../utils/jsonResponse");
 
 const createLike = async (req, res) => {
-    const io = req.app.get('io');
+    const io = req.app.get("io");
     const notificationManager = new NotificationManager(io);
 
     try {
@@ -16,22 +17,34 @@ const createLike = async (req, res) => {
 
         // Vérification que l'utilisateur est bien authentifié
         if (!userId) {
-            return jsonResponse(res, 'Utilisateur non authentifié', 401, null);
+            return jsonResponse(res, "Utilisateur non authentifié", 401, null);
         }
 
         const post = await Post.findById(postId);
         if (!post) {
-            return jsonResponse(res, 'Post introuvable', 404, null);
+            return jsonResponse(res, "Post introuvable", 404, null);
         }
 
-        const existingLike = await Interaction.findOne({ post: postId, user: userId, like: true });
+        const existingLike = await Interaction.findOne({
+            post: postId,
+            user: userId,
+            like: true,
+        });
         if (existingLike) {
-            return jsonResponse(res, 'Vous avez déjà liké ce post', 400, null);
+            return jsonResponse(res, "Vous avez déjà liké ce post", 400, null);
         }
 
-        const existingDislike = await Interaction.findOne({ post: postId, user: userId, like: false });
+        const existingDislike = await Interaction.findOne({
+            post: postId,
+            user: userId,
+            like: false,
+        });
         if (existingDislike) {
-            await existingDislike.delete();
+            await existingDislike.deleteOne();
+            post.dislikes = post.dislikes.filter(
+                (dislike) => dislike.toString() !== existingDislike._id.toString()
+            );
+            await post.save();
         }
 
         // Création du like avec validation explicite des champs requis
@@ -39,7 +52,7 @@ const createLike = async (req, res) => {
             post: postId,
             user: userId,
             like: true,
-            createdAt: new Date()
+            createdAt: new Date(),
         });
 
         // Validation du document avant sauvegarde
@@ -52,14 +65,14 @@ const createLike = async (req, res) => {
         await notificationManager.sendNotification({
             sender: userId,
             receiver: post.author,
-            type: 'like',
+            type: "like",
             post: postId,
-            message: 'Votre post a été liké',
+            message: "Votre post a été liké",
         });
 
-        return jsonResponse(res, 'Post liké avec succès', 201, like);
+        return jsonResponse(res, "Post liké avec succès", 201, like);
     } catch (error) {
-        console.error('Erreur lors de la création du like:', error);
+        console.error("Erreur lors de la création du like:", error);
         return jsonResponse(res, error.message, 500, null);
     }
 };
@@ -67,30 +80,45 @@ const createLike = async (req, res) => {
 const createDislike = async (req, res) => {
     try {
         const { postId } = req.params;
-        const { userId } = req.user;
-
+        const userId = req.user?.id;
         const post = await Post.findById(postId);
         if (!post) {
-            return jsonResponse(res, 'Post introuvable', 404, null);
+            return jsonResponse(res, "Post introuvable", 404, null);
         }
 
-        const existingLike = await Interaction.findOne({ post: postId, user: userId, like: true });
+        const existingLike = await Interaction.findOne({
+            post: postId,
+            user: userId,
+            like: true,
+        });
         if (existingLike) {
-            await existingLike.delete();
+            await existingLike.deleteOne();
+            post.likes = post.likes.filter(
+                (like) => like.toString() !== existingLike._id.toString()
+            );
+            await post.save();
         }
 
-        const existingDislike = await Interaction.findOne({ post: postId, user: userId, like: false });
+        const existingDislike = await Interaction.findOne({
+            post: postId,
+            user: userId,
+            like: false,
+        });
         if (existingDislike) {
-            return jsonResponse(res, 'Vous avez déjà disliké ce post', 400, null);
+            return jsonResponse(res, "Vous avez déjà disliké ce post", 400, null);
         }
 
-        const dislike = new Interaction({ post: postId, user: userId, like: false });
+        const dislike = new Interaction({
+            post: postId,
+            user: userId,
+            like: false,
+        });
         await dislike.save();
 
         post.dislikes.push(dislike._id);
         await post.save();
 
-        return jsonResponse(res, 'Post disliké avec succès', 201, dislike);
+        return jsonResponse(res, "Post disliké avec succès", 201, dislike);
     } catch (error) {
         return jsonResponse(res, error.message, 500, null);
     }
@@ -99,24 +127,30 @@ const createDislike = async (req, res) => {
 const deleteLike = async (req, res) => {
     try {
         const { postId } = req.params;
-        const { userId } = req.user;
+        const userId = req.user?.id;
 
         const post = await Post.findById(postId);
         if (!post) {
-            return jsonResponse(res, 'Post introuvable', 404, null);
+            return jsonResponse(res, "Post introuvable", 404, null);
         }
 
-        const existingLike = await Interaction.findOne({ post: postId, user: userId, like: true });
+        const existingLike = await Interaction.findOne({
+            post: postId,
+            user: userId,
+            like: true,
+        });
         if (!existingLike) {
-            return jsonResponse(res, 'Vous n\'avez pas liké ce post', 400, null);
+            return jsonResponse(res, "Vous n'avez pas liké ce post", 400, null);
         }
 
-        await existingLike.delete();
+        await existingLike.deleteOne();
 
-        post.likes = post.likes.filter(like => like.toString() !== existingLike._id.toString());
+        post.likes = post.likes.filter(
+            (like) => like.toString() !== existingLike._id.toString()
+        );
         await post.save();
 
-        return jsonResponse(res, 'Like supprimé avec succès', 200, null);
+        return jsonResponse(res, "Like supprimé avec succès", 200, null);
     } catch (error) {
         return jsonResponse(res, error.message, 500, null);
     }
@@ -125,24 +159,30 @@ const deleteLike = async (req, res) => {
 const deleteDislike = async (req, res) => {
     try {
         const { postId } = req.params;
-        const { userId } = req.user;
+        const userId = req.user?.id;
 
         const post = await Post.findById(postId);
         if (!post) {
-            return jsonResponse(res, 'Post introuvable', 404, null);
+            return jsonResponse(res, "Post introuvable", 404, null);
         }
 
-        const existingDislike = await Interaction.findOne({ post: postId, user: userId, like: false });
+        const existingDislike = await Interaction.findOne({
+            post: postId,
+            user: userId,
+            like: false,
+        });
         if (!existingDislike) {
-            return jsonResponse(res, 'Vous n\'avez pas disliké ce post', 400, null);
+            return jsonResponse(res, "Vous n'avez pas disliké ce post", 400, null);
         }
 
-        await existingDislike.delete();
+        await existingDislike.deleteOne();
 
-        post.dislikes = post.dislikes.filter(dislike => dislike.toString() !== existingDislike._id.toString());
+        post.dislikes = post.dislikes.filter(
+            (dislike) => dislike.toString() !== existingDislike._id.toString()
+        );
         await post.save();
 
-        return jsonResponse(res, 'Dislike supprimé avec succès', 200, null);
+        return jsonResponse(res, "Dislike supprimé avec succès", 200, null);
     } catch (error) {
         return jsonResponse(res, error.message, 500, null);
     }
@@ -150,21 +190,26 @@ const deleteDislike = async (req, res) => {
 
 // Commentaires
 const createComment = async (req, res) => {
-    const io = req.app.get('io');
+    const io = req.app.get("io");
     const notificationManager = new NotificationManager(io);
 
     try {
         const { postId } = req.params;
-        const { userId } = req.user;
+        const userId = req.user?.id;
         const { comment } = req.body;
 
-        if (!comment || comment.trim() === '') {
-            return jsonResponse(res, 'Le commentaire ne peut pas être vide', 400, null);
+        if (!comment || comment.trim() === "") {
+            return jsonResponse(
+                res,
+                "Le commentaire ne peut pas être vide",
+                400,
+                null
+            );
         }
 
         const post = await Post.findById(postId);
         if (!post) {
-            return jsonResponse(res, 'Post introuvable', 404, null);
+            return jsonResponse(res, "Post introuvable", 404, null);
         }
 
         const newComment = new Comment({
@@ -183,14 +228,14 @@ const createComment = async (req, res) => {
             await notificationManager.sendNotification({
                 sender: userId,
                 receiver: post.author,
-                type: 'comment',
+                type: "comment",
                 post: postId,
                 comment: newComment._id,
-                message: 'a commenté votre post',
+                message: "a commenté votre post",
             });
         }
 
-        return jsonResponse(res, 'Commentaire ajouté avec succès', 201, newComment);
+        return jsonResponse(res, "Commentaire ajouté avec succès", 201, newComment);
     } catch (error) {
         return jsonResponse(res, error.message, 500, null);
     }
@@ -199,30 +244,38 @@ const createComment = async (req, res) => {
 const deleteComment = async (req, res) => {
     try {
         const { postId, commentId } = req.params;
-        const { userId } = req.user;
+        const userId = req.user?.id;
 
         const post = await Post.findById(postId);
         if (!post) {
-            return jsonResponse(res, 'Post introuvable', 404, null);
+            return jsonResponse(res, "Post introuvable", 404, null);
         }
 
         const comment = await Comment.findById(commentId);
         if (!comment) {
-            return jsonResponse(res, 'Commentaire introuvable', 404, null);
+            return jsonResponse(res, "Commentaire introuvable", 404, null);
         }
 
         // Vérifier si l'utilisateur est l'auteur du commentaire ou du post
-        if (comment.author.toString() !== userId && post.author.toString() !== userId) {
-            return jsonResponse(res, 'Vous n\'êtes pas autorisé à supprimer ce commentaire', 403, null);
+        if (
+            comment.author.toString() !== userId &&
+            post.author.toString() !== userId
+        ) {
+            return jsonResponse(
+                res,
+                "Vous n'êtes pas autorisé à supprimer ce commentaire",
+                403,
+                null
+            );
         }
 
         await Comment.findByIdAndDelete(commentId);
 
         // Mettre à jour le post pour retirer la référence au commentaire
-        post.comments = post.comments.filter(c => c.toString() !== commentId);
+        post.comments = post.comments.filter((c) => c.toString() !== commentId);
         await post.save();
 
-        return jsonResponse(res, 'Commentaire supprimé avec succès', 200, null);
+        return jsonResponse(res, "Commentaire supprimé avec succès", 200, null);
     } catch (error) {
         return jsonResponse(res, error.message, 500, null);
     }
@@ -234,42 +287,47 @@ const getComments = async (req, res) => {
 
         const post = await Post.findById(postId);
         if (!post) {
-            return jsonResponse(res, 'Post introuvable', 404, null);
+            return jsonResponse(res, "Post introuvable", 404, null);
         }
 
         const comments = await Comment.find({ post: postId })
-            .populate('author', 'username profilePicture')
+            .populate("author", "username profilePicture")
             .populate({
-                path: 'answers',
+                path: "answers",
                 populate: {
-                    path: 'author',
-                    select: 'username profilePicture'
-                }
+                    path: "author",
+                    select: "username profilePicture",
+                },
             })
             .sort({ createdAt: -1 });
 
-        return jsonResponse(res, 'Commentaires récupérés avec succès', 200, comments);
+        return jsonResponse(
+            res,
+            "Commentaires récupérés avec succès",
+            200,
+            comments
+        );
     } catch (error) {
         return jsonResponse(res, error.message, 500, null);
     }
 };
 
 const answerComment = async (req, res) => {
-    const io = req.app.get('io');
+    const io = req.app.get("io");
     const notificationManager = new NotificationManager(io);
 
     try {
         const { commentId } = req.params;
-        const { userId } = req.user;
+        const userId = req.user?.id;
         const { answer } = req.body;
 
-        if (!answer || answer.trim() === '') {
-            return jsonResponse(res, 'La réponse ne peut pas être vide', 400, null);
+        if (!answer || answer.trim() === "") {
+            return jsonResponse(res, "La réponse ne peut pas être vide", 400, null);
         }
 
         const parentComment = await Comment.findById(commentId);
         if (!parentComment) {
-            return jsonResponse(res, 'Commentaire introuvable', 404, null);
+            return jsonResponse(res, "Commentaire introuvable", 404, null);
         }
 
         const newAnswer = new Comment({
@@ -277,7 +335,7 @@ const answerComment = async (req, res) => {
             author: userId,
             content: answer,
             isAnswer: true,
-            parentComment: commentId
+            parentComment: commentId,
         });
 
         await newAnswer.save();
@@ -291,14 +349,14 @@ const answerComment = async (req, res) => {
             await notificationManager.sendNotification({
                 sender: userId,
                 receiver: parentComment.author,
-                type: 'answer',
+                type: "answer",
                 post: parentComment.post,
                 comment: newAnswer._id,
-                message: 'a répondu à votre commentaire',
+                message: "a répondu à votre commentaire",
             });
         }
 
-        return jsonResponse(res, 'Réponse ajoutée avec succès', 201, newAnswer);
+        return jsonResponse(res, "Réponse ajoutée avec succès", 201, newAnswer);
     } catch (error) {
         return jsonResponse(res, error.message, 500, null);
     }
@@ -306,41 +364,50 @@ const answerComment = async (req, res) => {
 
 // Retweets
 const createRetweet = async (req, res) => {
-    const io = req.app.get('io');
+    const io = req.app.get("io");
     const notificationManager = new NotificationManager(io);
 
     try {
         const { postId } = req.params;
-        const { userId } = req.user;
+        const userId = req.user?.id;
         const { content } = req.body || {};
+
+        // Validation des champs requis
+        if (!postId) {
+            return jsonResponse(res, "ID du post requis", 400, null);
+        }
+        if (!userId) {
+            return jsonResponse(res, "Utilisateur non authentifié", 401, null);
+        }
 
         const post = await Post.findById(postId);
         if (!post) {
-            return jsonResponse(res, 'Post introuvable', 404, null);
+            return jsonResponse(res, "Post introuvable", 404, null);
         }
 
         // Vérifier si l'utilisateur a déjà retweeté ce post
         const existingRetweet = await Share.findOne({
-            originalPost: postId,
-            author: userId,
-            type: 'retweet'
+            post: postId,
+            user: userId,
         });
 
         if (existingRetweet) {
-            return jsonResponse(res, 'Vous avez déjà retweeté ce post', 400, null);
+            return jsonResponse(res, "Vous avez déjà retweeté ce post", 400, null);
         }
 
         const retweet = new Share({
-            originalPost: postId,
-            author: userId,
-            content: content || '',
-            type: 'retweet'
+            post: postId,
+            user: userId,
+            content: content || "",
         });
 
         await retweet.save();
 
         // Mettre à jour le post original
-        post.retweets.push(retweet._id);
+        if (!post.shares) {
+            post.shares = []; // Initialiser le tableau si non défini
+        }
+        post.shares.push(retweet._id);
         await post.save();
 
         // Notification au propriétaire du post
@@ -348,15 +415,16 @@ const createRetweet = async (req, res) => {
             await notificationManager.sendNotification({
                 sender: userId,
                 receiver: post.author,
-                type: 'retweet',
+                type: "retweet",
                 post: postId,
                 share: retweet._id,
-                message: 'a retweeté votre post',
+                message: "a retweeté votre post",
             });
         }
 
-        return jsonResponse(res, 'Retweet ajouté avec succès', 201, retweet);
+        return jsonResponse(res, "Retweet ajouté avec succès", 201, retweet);
     } catch (error) {
+        console.error("Erreur lors de la création du retweet:", error);
         return jsonResponse(res, error.message, 500, null);
     }
 };
@@ -364,30 +432,31 @@ const createRetweet = async (req, res) => {
 const deleteRetweet = async (req, res) => {
     try {
         const { postId } = req.params;
-        const { userId } = req.user;
+        const userId = req.user?.id;
 
         const post = await Post.findById(postId);
         if (!post) {
-            return jsonResponse(res, 'Post introuvable', 404, null);
+            return jsonResponse(res, "Post introuvable", 404, null);
         }
 
         const retweet = await Share.findOne({
-            originalPost: postId,
-            author: userId,
-            type: 'retweet'
+            post: postId,
+            user: userId,
         });
 
         if (!retweet) {
-            return jsonResponse(res, 'Retweet introuvable', 404, null);
+            return jsonResponse(res, "Retweet introuvable", 404, null);
         }
 
         await Share.findByIdAndDelete(retweet._id);
 
         // Mettre à jour le post original
-        post.retweets = post.retweets.filter(rt => rt.toString() !== retweet._id.toString());
+        post.shares = post.shares.filter(
+            (rt) => rt.toString() !== retweet._id.toString()
+        );
         await post.save();
 
-        return jsonResponse(res, 'Retweet supprimé avec succès', 200, null);
+        return jsonResponse(res, "Retweet supprimé avec succès", 200, null);
     } catch (error) {
         return jsonResponse(res, error.message, 500, null);
     }
@@ -397,26 +466,29 @@ const deleteRetweet = async (req, res) => {
 const createBookmark = async (req, res) => {
     try {
         const { postId } = req.params;
-        const { userId } = req.user;
+        const userId = req.user?.id;
 
         const post = await Post.findById(postId);
         if (!post) {
-            return jsonResponse(res, 'Post introuvable', 404, null);
+            return jsonResponse(res, "Post introuvable", 404, null);
         }
 
-        const existingBookmark = await Bookmark.findOne({ post: postId, user: userId });
+        const existingBookmark = await Bookmark.findOne({
+            post: postId,
+            user: userId,
+        });
         if (existingBookmark) {
-            return jsonResponse(res, 'Ce post est déjà dans vos signets', 400, null);
+            return jsonResponse(res, "Ce post est déjà dans vos signets", 400, null);
         }
 
         const bookmark = new Bookmark({
             post: postId,
-            user: userId
+            user: userId,
         });
 
         await bookmark.save();
 
-        return jsonResponse(res, 'Post ajouté aux signets', 201, bookmark);
+        return jsonResponse(res, "Post ajouté aux signets", 201, bookmark);
     } catch (error) {
         return jsonResponse(res, error.message, 500, null);
     }
@@ -425,16 +497,16 @@ const createBookmark = async (req, res) => {
 const deleteBookmark = async (req, res) => {
     try {
         const { postId } = req.params;
-        const { userId } = req.user;
+        const userId = req.user?.id;
 
         const bookmark = await Bookmark.findOne({ post: postId, user: userId });
         if (!bookmark) {
-            return jsonResponse(res, 'Signet introuvable', 404, null);
+            return jsonResponse(res, "Signet introuvable", 404, null);
         }
 
         await Bookmark.findByIdAndDelete(bookmark._id);
 
-        return jsonResponse(res, 'Signet supprimé avec succès', 200, null);
+        return jsonResponse(res, "Signet supprimé avec succès", 200, null);
     } catch (error) {
         return jsonResponse(res, error.message, 500, null);
     }
@@ -442,24 +514,85 @@ const deleteBookmark = async (req, res) => {
 
 const getUserBookmarks = async (req, res) => {
     try {
-        const { userId } = req.user;
+        const userId = req.user?.id;
 
         const bookmarks = await Bookmark.find({ user: userId })
             .populate({
-                path: 'post',
+                path: "post",
                 populate: [
-                    { path: 'author', select: 'username profilePicture' },
-                    { path: 'likes' },
-                    { path: 'dislikes' },
-                    { path: 'comments' },
-                    { path: 'retweets' }
-                ]
+                    { path: "author", select: "username profilePicture" },
+                    { path: "likes" },
+                    { path: "dislikes" },
+                    { path: "comments" },
+                    { path: "retweets" },
+                ],
             })
             .sort({ createdAt: -1 });
 
-        const posts = bookmarks.map(bookmark => bookmark.post);
+        const posts = bookmarks.map((bookmark) => bookmark.post);
 
-        return jsonResponse(res, 'Signets récupérés avec succès', 200, posts);
+        return jsonResponse(res, "Signets récupérés avec succès", 200, posts);
+    } catch (error) {
+        return jsonResponse(res, error.message, 500, null);
+    }
+};
+
+// Followers
+const followUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const followerId = req.user?.id;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return jsonResponse(res, "Utilisateur introuvable", 404, null);
+        }
+
+        const follower = await User.findById(followerId);
+        if (!follower) {
+            return jsonResponse(res, "Utilisateur introuvable", 404, null);
+        }
+
+        if (follower.following.includes(userId)) {
+            return jsonResponse(res, "Vous suivez déjà cet utilisateur", 400, null);
+        }
+
+        follower.following.push(userId);
+        user.followers.push(followerId);
+        await follower.save();
+        await user.save();
+
+        return jsonResponse(res, "Utilisateur suivi avec succès", 201, follower);
+    } catch (error) {
+        return jsonResponse(res, error.message, 500, null);
+    }
+};
+
+const unfollowUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const followerId = req.user?.id;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return jsonResponse(res, "Utilisateur introuvable", 404, null);
+        }
+
+        const follower = await User.findById(followerId);
+        if (!follower) {
+            return jsonResponse(res, "Utilisateur introuvable", 404, null);
+        }
+
+        if (!follower.following.includes(userId)) {
+            return jsonResponse(res, "Vous ne suivez pas cet utilisateur", 400, null);
+        }
+
+        follower.following = follower.following.filter((id) => id.toString() !== userId);
+        user.followers = user.followers.filter((id) => id.toString() !== followerId);
+        await follower.save();
+        await user.save();
+
+        return jsonResponse(res, "Utilisateur non suivi avec succès", 200, null);
     } catch (error) {
         return jsonResponse(res, error.message, 500, null);
     }
@@ -478,6 +611,7 @@ module.exports = {
     deleteRetweet,
     createBookmark,
     deleteBookmark,
-    getUserBookmarks
+    getUserBookmarks,
+    followUser,
+    unfollowUser,
 };
-

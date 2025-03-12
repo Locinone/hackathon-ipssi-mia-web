@@ -1,5 +1,5 @@
 export interface User {
-    id: number;
+    _id: string;
     name: string;
     username: string;
     email: string;
@@ -12,6 +12,7 @@ export interface User {
     role: string;
     acceptNotification: boolean;
     acceptTerms: boolean;
+    isFollowing?: boolean;
     acceptCamera: boolean;
     followers: string[];
     following: string[];

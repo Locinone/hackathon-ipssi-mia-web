@@ -4,10 +4,13 @@ import {
     useDeleteBookmark,
     useDeleteRetweet,
     useDislikePost,
+    useFollowUser,
     useLikePost,
     useUndislikePost,
+    useUnfollowUser,
     useUnlikePost,
 } from '@/services/queries/interactionQueries';
+import { useAuthStore } from '@/store/authStore';
 import { Post } from '@/types';
 
 import { useEffect, useState } from 'react';
@@ -17,25 +20,35 @@ import { motion } from 'framer-motion';
 import {
     Bookmark,
     MessageCircle,
+    MoreVertical,
     Repeat,
     ThumbsDown,
     ThumbsUp,
     User as UserIcon,
+    X,
 } from 'lucide-react';
+
+import CreateCommentForm from './CreateCommentForm';
 
 function CardPost({ post }: { post: Post }) {
     const [hashtags, setHashtags] = useState<string[] | null>(null);
     const [openComments, setOpenComments] = useState(false);
+    const [openRetweet, setOpenRetweet] = useState(false);
+    const [openRetweetContent, setOpenRetweetContent] = useState(false);
+    const [retweetContent, setRetweetContent] = useState('');
+    const { user } = useAuthStore();
 
     const { mutate: createLike } = useLikePost();
     const { mutate: createDislike } = useDislikePost();
     const { mutate: createBookmark } = useCreateBookmark();
     const { mutate: createRetweet } = useCreateRetweet();
+    const { mutate: followUser } = useFollowUser();
 
     const { mutate: deleteLike } = useUnlikePost();
     const { mutate: deleteDislike } = useUndislikePost();
     const { mutate: deleteBookmark } = useDeleteBookmark();
     const { mutate: deleteRetweet } = useDeleteRetweet();
+    const { mutate: unfollowUser } = useUnfollowUser();
 
     if (!post) return null;
 
@@ -74,7 +87,7 @@ function CardPost({ post }: { post: Post }) {
 
     return (
         <div className="w-full h-full flex flex-col items-start text-white">
-            <div className="px-4 sm:px-8 md:px-16 lg:px-24 flex flex-col gap-6 md:gap-10 w-full">
+            <div className="relative px-4 sm:px-8 md:px-16 lg:px-24 flex flex-col gap-6 md:gap-10 w-full">
                 <div
                     className={`${post.files && post.files.length > 0 ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : ''}`}
                 >
@@ -100,6 +113,39 @@ function CardPost({ post }: { post: Post }) {
                                         </Link>
                                     </div>
                                 </div>
+                                {post.author.username === user?.username ? (
+                                    <button className=" top-0 right-0">
+                                        <MoreVertical size={24} />
+                                    </button>
+                                ) : (
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        className={`bg-white/20 px-4 py-2 rounded-full cursor-pointer transition-all duration-300 ${
+                                            post.author.isFollowing
+                                                ? 'hover:bg-red-500 group'
+                                                : 'hover:bg-white group'
+                                        } `}
+                                        onClick={() => {
+                                            post.author.isFollowing
+                                                ? unfollowUser(post.author._id!)
+                                                : followUser(post.author._id!);
+                                        }}
+                                    >
+                                        <span className="group-hover:hidden">
+                                            {post.author.isFollowing ? 'Suivi' : 'Suivre'}
+                                        </span>
+                                        {post.author.isFollowing && (
+                                            <span className="hidden group-hover:block">
+                                                Se désabonner
+                                            </span>
+                                        )}
+                                        {!post.author.isFollowing && (
+                                            <span className="hidden group-hover:block group-hover:text-black">
+                                                Suivre
+                                            </span>
+                                        )}
+                                    </motion.button>
+                                )}
                             </div>
                             <h2
                                 className={`${getTextSizeClass(post.content)} font-bold leading-tight text-left ${post.files && post.files.length > 0 ? 'col-span-1' : ''}`}
@@ -129,11 +175,17 @@ function CardPost({ post }: { post: Post }) {
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
                                         onClick={() => {
-                                            createLike(post._id!);
+                                            post.hasLiked
+                                                ? deleteLike(post._id!)
+                                                : createLike(post._id!);
                                         }}
                                         className="flex flex-row justify-between items-center gap-1 sm:gap-2 cursor-pointer"
                                     >
-                                        <ThumbsUp size={24} />
+                                        <ThumbsUp
+                                            size={24}
+                                            fill={post.hasLiked ? 'currentColor' : 'none'}
+                                            className={`${post.hasLiked ? 'text-blue-300' : 'text-white'}`}
+                                        />
                                         <p className="text-sm sm:text-lg">
                                             {post.likes.length || 0}
                                         </p>
@@ -141,9 +193,18 @@ function CardPost({ post }: { post: Post }) {
                                     <motion.button
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
+                                        onClick={() => {
+                                            post.hasDisliked
+                                                ? deleteDislike(post._id!)
+                                                : createDislike(post._id!);
+                                        }}
                                         className="flex flex-row justify-between items-center gap-1 sm:gap-2 cursor-pointer"
                                     >
-                                        <ThumbsDown size={24} />
+                                        <ThumbsDown
+                                            size={24}
+                                            fill={post.hasDisliked ? 'currentColor' : 'none'}
+                                            className={`${post.hasDisliked ? 'text-red-400' : 'text-white'}`}
+                                        />
                                         <p className="text-sm sm:text-lg">
                                             {post.dislikes.length || 0}
                                         </p>
@@ -151,6 +212,7 @@ function CardPost({ post }: { post: Post }) {
                                     <motion.button
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
+                                        onClick={() => setOpenComments(!openComments)}
                                         className="flex flex-row justify-between items-center gap-1 sm:gap-2 cursor-pointer"
                                     >
                                         <MessageCircle size={24} />
@@ -159,21 +221,106 @@ function CardPost({ post }: { post: Post }) {
                                         </p>
                                     </motion.button>
                                     <motion.button
-                                        whileHover={{ scale: 1.1 }}
+                                        whileHover={{ scale: 1 }}
                                         whileTap={{ scale: 0.9 }}
-                                        className="flex flex-row justify-between items-center gap-1 sm:gap-2 cursor-pointer"
+                                        onClick={() => setOpenRetweet(!openRetweet)}
+                                        className="relative flex flex-row justify-between items-center gap-1 sm:gap-2 cursor-pointer"
                                     >
-                                        <Repeat size={24} />
+                                        <Repeat
+                                            size={24}
+                                            className={`${post.hasShared ? 'text-green-500' : 'text-white'}`}
+                                        />
                                         <p className="text-sm sm:text-lg">
                                             {post.shares.length || 0}
                                         </p>
+                                        {openRetweet && (
+                                            <div className="absolute top-0 left-0 p-2 w-[200px] rounded-lg bg-black/70 backdrop-blur-sm">
+                                                <div className="flex flex-col text-left gap-2">
+                                                    <div
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        onClick={() => {
+                                                            post.hasShared
+                                                                ? deleteRetweet(post._id!)
+                                                                : createRetweet({
+                                                                      postId: post._id!,
+                                                                  });
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                post.hasShared
+                                                                    ? deleteRetweet(post._id!)
+                                                                    : createRetweet({
+                                                                          postId: post._id!,
+                                                                      });
+                                                            }
+                                                        }}
+                                                        className="cursor-pointer"
+                                                    >
+                                                        Retweeter
+                                                    </div>
+                                                    <div
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        onClick={() => setOpenRetweetContent(true)}
+                                                    >
+                                                        Retweeter + Message
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {openRetweetContent && (
+                                            <div className="absolute top-0 left-0 p-2 rounded-lg bg-black">
+                                                <input
+                                                    type="text"
+                                                    value={retweetContent}
+                                                    onChange={(e) =>
+                                                        setRetweetContent(e.target.value)
+                                                    }
+                                                />
+                                                <div
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={() => {
+                                                        post.hasShared
+                                                            ? deleteRetweet(post._id!)
+                                                            : createRetweet({
+                                                                  postId: post._id!,
+                                                                  content: retweetContent,
+                                                              });
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            post.hasShared
+                                                                ? deleteRetweet(post._id!)
+                                                                : createRetweet({
+                                                                      postId: post._id!,
+                                                                      content: retweetContent,
+                                                                  });
+                                                        }
+                                                    }}
+                                                    className="cursor-pointer"
+                                                >
+                                                    Retweeter
+                                                </div>
+                                            </div>
+                                        )}
                                     </motion.button>
                                     <motion.button
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
+                                        onClick={() => {
+                                            post.hasBookmarked
+                                                ? deleteBookmark(post._id!)
+                                                : createBookmark(post._id!);
+                                        }}
                                         className="flex flex-row justify-between items-center gap-1 sm:gap-2 cursor-pointer"
                                     >
-                                        <Bookmark size={24} />
+                                        <Bookmark
+                                            size={24}
+                                            className={`${post.hasBookmarked ? 'text-yellow-300' : 'text-white'}`}
+                                            fill={post.hasBookmarked ? 'currentColor' : 'none'}
+                                        />
                                     </motion.button>
                                     <p className="m-0 text-sm sm:text-lg">
                                         {timeAgo(post.createdAt)}
@@ -212,6 +359,38 @@ function CardPost({ post }: { post: Post }) {
                                 </motion.div>
                             ))}
                         </div>
+                    )}
+
+                    {/* Commentaires */}
+                    {openComments && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="fixed bottom-0 left-0 w-full h-full bg-black/50 z-20"
+                        >
+                            <motion.div
+                                initial={{ x: '100%' }}
+                                animate={{ x: 0 }}
+                                exit={{ x: '100%' }}
+                                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                                className="absolute p-4 bg-black z-[100] h-full gap-4 w-1/3 right-0"
+                            >
+                                <div className="flex flex-row justify-between items-center gap-4">
+                                    <p className="text-white text-2xl font-bold">Commentaires</p>
+                                    <motion.button
+                                        onClick={() => setOpenComments(false)}
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        className="cursor-pointer"
+                                    >
+                                        <X size={24} />
+                                    </motion.button>
+                                </div>
+                                <CreateCommentForm postId={post._id!} onSubmit={() => {}} />
+                            </motion.div>
+                        </motion.div>
                     )}
                 </div>
             </div>
