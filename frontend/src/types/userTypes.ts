@@ -1,21 +1,21 @@
 export interface User {
-    id: number;
+    _id: string;
     name: string;
     username: string;
     email: string;
-    password?: string;
     biography?: string;
     location?: string;
     link?: string;
-    image?: string;
-    banner?: string;
-    role: string;
-    acceptNotification: boolean;
-    acceptTerms: boolean;
-    acceptCamera: boolean;
-    followers: string[];
-    following: string[];
-    createdAt: string;
+    image: string;
+    banner: string;
+    role: 'user' | 'admin';
+    following: string[] | User[];
+    followers: string[] | User[];
+    createdAt?: string;
+    acceptNotification?: boolean;
+    acceptTerms?: boolean;
+    acceptCamera?: boolean;
+    __v?: number;
 }
 
 export interface LoginData {

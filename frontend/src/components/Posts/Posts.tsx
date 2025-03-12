@@ -1,4 +1,4 @@
-import { Post, User } from '@/types';
+import { Post } from '@/types';
 
 import React, { Fragment, useEffect, useRef, useState } from 'react';
 
@@ -127,16 +127,7 @@ function Posts({ userProfile = false, postsData }: { userProfile: boolean; posts
                         className="w-full pt-20 md:pt-24 flex justify-center"
                     >
                         <div className="w-full">
-                            <CardPost
-                                content={currentPost.content}
-                                author={currentPost.author as unknown as User}
-                                date={currentPost.date}
-                                likes={currentPost.likes}
-                                dislikes={currentPost.dislikes}
-                                comments={currentPost.comments}
-                                repeat={currentPost.repeat}
-                                files={currentPost.files ? currentPost.files : []}
-                            />
+                            <CardPost post={currentPost} />
                         </div>
                     </motion.div>
                 </AnimatePresence>
