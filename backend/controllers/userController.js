@@ -48,7 +48,9 @@ const login = async (req, res) => {
 const register = async (req, res) => {
   try {
 
-    const image = req.body.image || "";
+    const { name, username, email, password, acceptNotification, acceptCamera, acceptTerms } = req.body;
+
+    let existingUser = await User.findOne({ $or: [{ email }, { username }] });
 
     if (existingUser) {
       return res.status(400).json({
