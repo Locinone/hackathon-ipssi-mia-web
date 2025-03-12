@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [tool.poetry]
-packages = [{include = "recomandations", from = "src"}]
+packages = [{include = "nlp", from = "src"}]
 
 
 [build-system]
