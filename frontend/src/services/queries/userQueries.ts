@@ -91,7 +91,7 @@ export const useLogoutUser = () => {
             logout();
             queryClient.invalidateQueries({ queryKey: ['currentUser'] });
             toast.success('Déconnexion réussie');
-            window.location.href = '/login';
+            window.location.href = '/';
         },
         onError: (error: any) => {
             toast.error(error.message || 'Erreur lors de la déconnexion');

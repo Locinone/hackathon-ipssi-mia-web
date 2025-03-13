@@ -7,8 +7,7 @@ class InteractionService {
         const response = await api.fetchRequest(
             `${this.apiUrl}/likes/${postId}/create`,
             'POST',
-            null,
-            true
+            null
         );
         return response.data;
     }
@@ -17,8 +16,7 @@ class InteractionService {
         const response = await api.fetchRequest(
             `${this.apiUrl}/likes/${postId}/delete`,
             'DELETE',
-            null,
-            true
+            null
         );
         return response.data;
     }
@@ -27,8 +25,7 @@ class InteractionService {
         const response = await api.fetchRequest(
             `${this.apiUrl}/dislikes/${postId}/create`,
             'POST',
-            null,
-            true
+            null
         );
         return response.data;
     }
@@ -37,8 +34,7 @@ class InteractionService {
         const response = await api.fetchRequest(
             `${this.apiUrl}/dislikes/${postId}/delete`,
             'DELETE',
-            null,
-            true
+            null
         );
         return response.data;
     }
@@ -49,8 +45,7 @@ class InteractionService {
         const response = await api.fetchRequest(
             `${this.apiUrl}/comments/${postId}/create`,
             'POST',
-            { comment },
-            true
+            { comment }
         );
         return response.data;
     }
@@ -59,19 +54,13 @@ class InteractionService {
         const response = await api.fetchRequest(
             `${this.apiUrl}/comments/${postId}/${commentId}/delete`,
             'DELETE',
-            null,
-            true
+            null
         );
         return response.data;
     }
 
     public async getComments(postId: string) {
-        const response = await api.fetchRequest(
-            `${this.apiUrl}/comments/${postId}`,
-            'GET',
-            null,
-            true
-        );
+        const response = await api.fetchRequest(`${this.apiUrl}/comments/${postId}`, 'GET', null);
         return response.data;
     }
 
@@ -79,8 +68,7 @@ class InteractionService {
         const response = await api.fetchRequest(
             `${this.apiUrl}/comments/${commentId}/answer`,
             'POST',
-            { answer },
-            true
+            { answer }
         );
         return response.data;
     }
@@ -91,8 +79,7 @@ class InteractionService {
         const response = await api.fetchRequest(
             `${this.apiUrl}/retweets/${postId}/create`,
             'POST',
-            content ? { content } : null,
-            true
+            content ? { content } : null
         );
         return response.data;
     }
@@ -101,8 +88,7 @@ class InteractionService {
         const response = await api.fetchRequest(
             `${this.apiUrl}/retweets/${postId}/delete`,
             'DELETE',
-            null,
-            true
+            null
         );
         return response.data;
     }
@@ -113,8 +99,7 @@ class InteractionService {
         const response = await api.fetchRequest(
             `${this.apiUrl}/bookmarks/${postId}/create`,
             'POST',
-            null,
-            true
+            null
         );
         return response.data;
     }
@@ -123,15 +108,31 @@ class InteractionService {
         const response = await api.fetchRequest(
             `${this.apiUrl}/bookmarks/${postId}/delete`,
             'DELETE',
-            null,
-            true
+            null
         );
         return response.data;
     }
 
     public async getUserBookmarks() {
-        const response = await api.fetchRequest(`${this.apiUrl}/bookmarks/user`, 'GET', null, true);
-        return response.data;
+        try {
+            console.log("Service - Récupération des bookmarks de l'utilisateur");
+            const response = await api.fetchRequest(`${this.apiUrl}/bookmarks/user`, 'GET', null);
+
+            if (!response.success) {
+                console.error(
+                    'Service - Erreur lors de la récupération des bookmarks:',
+                    response.message
+                );
+                throw new Error(response.message || 'Erreur lors de la récupération des bookmarks');
+            }
+
+            const bookmarks = Array.isArray(response.data) ? response.data : [];
+            console.log('Service - Bookmarks récupérés:', bookmarks.length, 'éléments');
+            return bookmarks;
+        } catch (error) {
+            console.error('Service - Exception lors de la récupération des bookmarks:', error);
+            throw error;
+        }
     }
 
     public async followUser(userId: string) {

@@ -25,4 +25,9 @@ router.get("/me", authenticateJWT, userController.getCurrentUser);
 router.post("/follow/:id", authenticateJWT, userController.followUser);
 router.post("/unfollow/:id", authenticateJWT, userController.unfollowUser);
 router.get('/profile/:username', userController.getUserProfile);
+
+// Nouvelles routes pour récupérer les abonnés et les abonnements
+router.get('/followers/:userId', userController.getUserFollowers);
+router.get('/following/:userId', userController.getUserFollowing);
+
 module.exports = router;

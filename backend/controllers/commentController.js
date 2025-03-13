@@ -102,4 +102,30 @@ const getCommentsByPost = async (req, res) => {
   }
 };
 
-module.exports = { createComment, deleteComment, getCommentsByPost };
+// Nouvelle fonction pour récupérer les commentaires par utilisateur
+const getCommentsByUser = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Récupérer les commentaires de l'utilisateur avec les informations du post et de l'auteur
+    const comments = await Comment.find({ author: userId })
+      .populate("author", "username name image")
+      .populate("post", "content")
+      .sort({ createdAt: -1 }); // Tri par date décroissante (plus récent d'abord)
+
+    // Retourner les commentaires avec un format standard
+    return res.status(200).json({
+      success: true,
+      message: "Commentaires récupérés avec succès",
+      data: comments
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+      data: null
+    });
+  }
+};
+
+module.exports = { createComment, deleteComment, getCommentsByPost, getCommentsByUser };

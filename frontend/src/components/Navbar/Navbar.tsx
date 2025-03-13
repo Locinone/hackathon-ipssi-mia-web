@@ -1,3 +1,4 @@
+import { useLogoutUser } from '@/services/queries/userQueries';
 import { useAuthStore } from '@/store/authStore';
 
 import { useEffect, useRef, useState } from 'react';
@@ -24,6 +25,7 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
     const { user } = useAuthStore();
     const createPostRef = useRef<HTMLDivElement>(null);
     const { color1, color2 } = useColorStore();
+    const { mutate: logout, isPending: isLoggingOut } = useLogoutUser();
 
     useEffect(() => {
         setActivePath(location.pathname);
@@ -56,7 +58,9 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
         }
     };
 
-    const handleLogout = async () => {};
+    const handleLogout = async () => {
+        logout();
+    };
 
     const navigateTo = (path: string) => {
         navigate(path);
@@ -110,7 +114,7 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                             whileTap={{ scale: 0.9 }}
                             className={`${activePath === '/' ? 'text-cyan-600 bg-cyan-100 rounded-full p-2' : 'text-white'}`}
                         >
-                            <Link to="/home">
+                            <Link to="/">
                                 <Home size={24} className="cursor-pointer" />
                             </Link>
                         </motion.div>
@@ -129,7 +133,7 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                             whileTap={{ scale: 0.9 }}
                             className={`${activePath === '/bookmarks' ? 'text-yellow-600 bg-yellow-100 rounded-full p-2' : 'text-white'}`}
                         >
-                            <Link to="/bookmarks">
+                            <Link to={`/profile/${user?.username}?tab=bookmarks`}>
                                 <Bookmark size={24} className="cursor-pointer" />
                             </Link>
                         </motion.div>
@@ -202,7 +206,7 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                     whileTap={{ scale: 0.9 }}
                     className="flex flex-col items-center"
                 >
-                    <Link to="/bookmarks">
+                    <Link to={`/profile/${user?.username}?tab=bookmarks`}>
                         <Bookmark size={24} className="text-white" />
                     </Link>
                 </motion.div>
