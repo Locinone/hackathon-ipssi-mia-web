@@ -5,6 +5,7 @@ const interactionController = require("../controllers/interactionController");
 const router = express.Router();
 
 // Routes pour les likes
+router.get("/likes/user/:userId", interactionController.getLikesByUser);
 router.post("/likes/:postId/create", authenticateJWT, interactionController.createLike);
 router.delete("/likes/:postId/delete", authenticateJWT, interactionController.deleteLike);
 

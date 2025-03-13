@@ -99,7 +99,7 @@ const register = async (req, res) => {
 
 const followUser = async (req, res) => {
   const io = req.app.get("io");
-  const notificationManager = new NotificationManager(io);
+  // const notificationManager = new NotificationManager(io);
 
   const { id } = req.params;
   const userId = req.user.id;
@@ -119,12 +119,12 @@ const followUser = async (req, res) => {
       await currentUser.save();
       await userToFollow.save();
 
-      await notificationManager.sendNotification({
-        sender: userId,
-        receiver: id,
-        type: "follow",
-        message: `${currentUser.username} vous a suivi.`,
-      });
+      // await notificationManager.sendNotification({
+      //   sender: userId,
+      //   receiver: id,
+      //   type: "follow",
+      //   message: `${currentUser.username} vous a suivi.`,
+      // });
 
       return res.status(200).send("Utilisateur suivi avec succès");
     }
@@ -253,4 +253,80 @@ const getUserProfile = async (req, res) => {
   }
 };
 
-module.exports = { login, register, updateUser, deleteUser, getUsers, getCurrentUser, followUser, unfollowUser, getUserProfile };
+// Nouveau contrôleur pour récupérer les abonnés d'un utilisateur
+const getUserFollowers = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    console.log(`Récupération des abonnés pour l'utilisateur: ${userId}`);
+
+    // Vérifier que l'ID utilisateur est valide
+    if (!userId) {
+      return jsonResponse(res, 'ID utilisateur invalide', 400, null);
+    }
+
+    // Récupérer l'utilisateur avec ses abonnés
+    const user = await User.findById(userId).select('followers');
+
+    if (!user) {
+      return jsonResponse(res, 'Utilisateur introuvable', 404, null);
+    }
+
+    // Récupérer les détails des abonnés
+    const followers = await User.find({ _id: { $in: user.followers } })
+      .select('_id name username image');
+
+    console.log(`${followers.length} abonnés trouvés pour l'utilisateur ${userId}`);
+
+    return jsonResponse(res, 'Abonnés récupérés avec succès', 200, followers);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des abonnés:', error);
+    return jsonResponse(res, error.message, 500, null);
+  }
+};
+
+// Nouveau contrôleur pour récupérer les abonnements d'un utilisateur
+const getUserFollowing = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    console.log(`Récupération des abonnements pour l'utilisateur: ${userId}`);
+
+    // Vérifier que l'ID utilisateur est valide
+    if (!userId) {
+      return jsonResponse(res, 'ID utilisateur invalide', 400, null);
+    }
+
+    // Récupérer l'utilisateur avec ses abonnements
+    const user = await User.findById(userId).select('following');
+
+    if (!user) {
+      return jsonResponse(res, 'Utilisateur introuvable', 404, null);
+    }
+
+    // Récupérer les détails des abonnements
+    const following = await User.find({ _id: { $in: user.following } })
+      .select('_id name username image');
+
+    console.log(`${following.length} abonnements trouvés pour l'utilisateur ${userId}`);
+
+    return jsonResponse(res, 'Abonnements récupérés avec succès', 200, following);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des abonnements:', error);
+    return jsonResponse(res, error.message, 500, null);
+  }
+};
+
+module.exports = {
+  login,
+  register,
+  updateUser,
+  deleteUser,
+  getUsers,
+  getCurrentUser,
+  followUser,
+  unfollowUser,
+  getUserProfile,
+  getUserFollowers,
+  getUserFollowing
+};

@@ -187,6 +187,18 @@ export const useDeleteBookmark = () => {
 export const useGetUserBookmarks = () => {
     return useQuery({
         queryKey: ['bookmarks'],
-        queryFn: () => interactionService.getUserBookmarks(),
+        queryFn: async () => {
+            console.log("Récupération des bookmarks de l'utilisateur...");
+            try {
+                const response = await interactionService.getUserBookmarks();
+                console.log('Bookmarks récupérés avec succès:', response);
+                return response;
+            } catch (error) {
+                console.error('Erreur lors de la récupération des bookmarks:', error);
+                throw error;
+            }
+        },
+        staleTime: 1000 * 60, // 1 minute
+        retry: 1,
     });
 };
