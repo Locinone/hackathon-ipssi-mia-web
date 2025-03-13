@@ -1,5 +1,7 @@
 import { Post } from '@/types';
 
+import { Link } from 'react-router-dom';
+
 import { motion } from 'framer-motion';
 
 interface PostContentProps {
@@ -34,7 +36,7 @@ function PostContent({ post, hashtags }: PostContentProps) {
                             whileHover={{ scale: 1.05 }}
                             className="text-base sm:text-xl cursor-pointer"
                         >
-                            {hashtag}
+                            <Link to={`/posts?h=${hashtag.replace('#', '')}`}>{hashtag}</Link>
                         </motion.p>
                     ))}
                 </div>

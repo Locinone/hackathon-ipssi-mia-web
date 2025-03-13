@@ -1,6 +1,6 @@
 import { Post } from '@/types';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { Heart, MessageCircle, MoreHorizontal } from 'lucide-react';
@@ -10,71 +10,8 @@ import { useGetLikesByUser } from '../../services/queries/likeQueries';
 import { useUserProfile } from '../../services/queries/useUserProfile';
 import Loader from '../ui/Loader';
 
-// Définition d'un type local pour les posts mockés qui correspond à la structure attendue
-interface MockPost {
-    _id: string;
-    content: string;
-    author: {
-        _id: string;
-        name: string;
-        username: string;
-        image: string;
-    };
-    createdAt?: string;
-    likes?: any[];
-    comments?: any[];
-    reposts?: number;
-}
-
-// Données mockées pour visualiser le rendu
-const mockLikedPosts: MockPost[] = [
-    {
-        _id: '1',
-        content:
-            "Ceci est un post liké avec un contenu assez long pour voir comment le texte s'affiche sur plusieurs lignes. Qu'en pensez-vous ?",
-        author: {
-            _id: '101',
-            name: 'Barack Obama',
-            username: 'BarackObama',
-            image: '', // Image vide
-        },
-        createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(), // 25 minutes ago
-        likes: Array(14),
-        comments: Array(3),
-        reposts: 5,
-    },
-    {
-        _id: '2',
-        content: 'Un autre post liké avec un point de vue intéressant !',
-        author: {
-            _id: '102',
-            name: 'Elon Musk',
-            username: 'elonmusk',
-            image: '', // Image vide
-        },
-        createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
-        likes: Array(42),
-        comments: Array(7),
-        reposts: 12,
-    },
-    {
-        _id: '3',
-        content: 'Voici un post liké plus ancien pour tester le formatage des dates.',
-        author: {
-            _id: '103',
-            name: 'Bill Gates',
-            username: 'BillGates',
-            image: '', // Image vide
-        },
-        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
-        likes: Array(89),
-        comments: Array(15),
-        reposts: 23,
-    },
-];
-
 interface LikedPostCardProps {
-    post: Post | MockPost;
+    post: Post;
 }
 
 const LikedPostCard: React.FC<LikedPostCardProps> = ({ post }) => {
@@ -175,9 +112,6 @@ const UserLikes: React.FC = () => {
     const { data: userData } = useUserProfile(username);
     const { data: userLikes, isLoading, error } = useGetLikesByUser(userData?._id);
 
-    // État pour contrôler l'affichage des données mockées
-    const [showMockData, setShowMockData] = useState(true); // Afficher les données mockées par défaut
-
     useEffect(() => {
         if (userData) {
             console.log('Données utilisateur pour les likes:', userData);
@@ -188,39 +122,12 @@ const UserLikes: React.FC = () => {
         if (userLikes) {
             console.log('Likes récupérés:', userLikes);
 
-            // Si nous avons des données réelles, désactiver les données mockées
-            if (userLikes.success && userLikes.data && userLikes.data.length > 0) {
-                setShowMockData(false);
-            }
-
             // Afficher plus de détails sur les données reçues pour le débogage
             if (userLikes.data && userLikes.data.length > 0) {
                 console.log('Premier post liké:', userLikes.data[0]);
             }
         }
     }, [userLikes]);
-
-    // Afficher les données mockées pour visualisation
-    if (showMockData) {
-        return (
-            <div className="space-y-4">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-white text-lg font-semibold">
-                        Posts likés (Données de test)
-                    </h2>
-                    <button
-                        className="text-xs text-gray-400 hover:text-blue-500"
-                        onClick={() => setShowMockData(false)}
-                    >
-                        Essayer de charger les données réelles
-                    </button>
-                </div>
-                {mockLikedPosts.map((post) => (
-                    <LikedPostCard key={post._id} post={post} />
-                ))}
-            </div>
-        );
-    }
 
     if (isLoading) {
         return <Loader />;
@@ -236,9 +143,9 @@ const UserLikes: React.FC = () => {
                 </p>
                 <button
                     className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    onClick={() => setShowMockData(true)}
+                    onClick={() => window.location.reload()}
                 >
-                    Afficher des exemples de posts likés
+                    Réessayer
                 </button>
             </div>
         );
@@ -251,12 +158,6 @@ const UserLikes: React.FC = () => {
                 <p className="text-gray-500">
                     {userLikes && !userLikes.success ? `Erreur: ${userLikes.message}` : ''}
                 </p>
-                <button
-                    className="mt-2 text-sm text-blue-500 hover:underline"
-                    onClick={() => setShowMockData(true)}
-                >
-                    Afficher des exemples de posts likés
-                </button>
             </div>
         );
     }

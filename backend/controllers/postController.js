@@ -125,7 +125,6 @@ const createPost = async (req, res) => {
   }
 };
 
-
 const updatePost = async (req, res) => {
 
   const userId = req.user.id;
@@ -224,6 +223,7 @@ const getPosts = async (req, res) => {
     }
 
     let posts = await Post.find(query)
+      .sort(sortOption)
       .populate("files")
       .populate("author", "username name")
       .populate("hashtags", "name")
@@ -295,6 +295,7 @@ const getPosts = async (req, res) => {
     jsonResponse(res, error.message, 500, null);
   }
 };
+
 const getPostById = async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId)

@@ -27,53 +27,6 @@ interface Comment {
     reposts?: number;
 }
 
-// Données mockées pour visualiser le rendu
-const mockComments: Comment[] = [
-    {
-        _id: '1',
-        content:
-            "Ceci est un commentaire de test avec un contenu assez long pour voir comment le texte s'affiche sur plusieurs lignes. Qu'en pensez-vous ?",
-        author: {
-            _id: '101',
-            name: 'Barack Obama',
-            username: 'BarackObama',
-            image: '', // Image vide
-        },
-        createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(), // 25 minutes ago
-        likes: Array(14),
-        replies: Array(3),
-        reposts: 5,
-    },
-    {
-        _id: '2',
-        content: 'Un autre commentaire intéressant avec un point de vue différent !',
-        author: {
-            _id: '102',
-            name: 'Elon Musk',
-            username: 'elonmusk',
-            image: '', // Image vide
-        },
-        createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
-        likes: Array(42),
-        replies: Array(7),
-        reposts: 12,
-    },
-    {
-        _id: '3',
-        content: 'Voici un commentaire plus ancien pour tester le formatage des dates.',
-        author: {
-            _id: '103',
-            name: 'Bill Gates',
-            username: 'BillGates',
-            image: '', // Image vide
-        },
-        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
-        likes: Array(89),
-        replies: Array(15),
-        reposts: 23,
-    },
-];
-
 interface CommentCardProps {
     comment: Comment;
     setShowReplies: (show: boolean) => void;
@@ -244,9 +197,6 @@ export const UserComments: React.FC = () => {
     const { data: userData } = useUserProfile(username);
     const { data: userComments, isLoading, error } = useGetCommentsByUserId(userData?._id);
 
-    // État pour contrôler l'affichage des données mockées
-    const [showMockData, setShowMockData] = useState(false); // Par défaut, on n'affiche pas les données mockées
-
     useEffect(() => {
         if (userData) {
             console.log('Données utilisateur pour les commentaires:', userData);
@@ -272,9 +222,9 @@ export const UserComments: React.FC = () => {
                 </p>
                 <button
                     className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    onClick={() => setShowMockData(true)}
+                    onClick={() => window.location.reload()}
                 >
-                    Afficher des exemples de commentaires
+                    Réessayer
                 </button>
             </div>
         );
@@ -284,12 +234,6 @@ export const UserComments: React.FC = () => {
         return (
             <div className="text-white p-4 text-center">
                 <p>Aucun commentaire trouvé pour cet utilisateur.</p>
-                <button
-                    className="mt-2 text-sm text-blue-500 hover:underline"
-                    onClick={() => setShowMockData(true)}
-                >
-                    Afficher des exemples de commentaires
-                </button>
             </div>
         );
     }

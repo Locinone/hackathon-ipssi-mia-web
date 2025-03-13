@@ -3,6 +3,7 @@ import { api } from '@/services/api';
 import { useMarkNotificationAsRead } from '@/services/queries/notificationQueries';
 import { useLogoutUser } from '@/services/queries/userQueries';
 import { useAuthStore } from '@/store/authStore';
+import { useColorStore } from '@/store/colorStore';
 import { Notification } from '@/types';
 
 import { useEffect, useRef, useState } from 'react';
@@ -10,8 +11,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { motion } from 'framer-motion';
 import { Bookmark, Flame, Home, LogOut, Plus, Search, User } from 'lucide-react';
-
-import { useColorStore } from '@/stores/colorStore';
 
 import NotificationPanel from '../Notifications/NotificationPanel';
 import CreatePostForm from './CreatePostForm';
@@ -119,12 +118,16 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
     const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
     const [isTrendingOpen, setIsTrendingOpen] = useState(false);
     const [onClickSearch, setOnClickSearch] = useState(false);
+    const [onClickSearchMobile, setOnClickSearchMobile] = useState(false);
+    const [showUserMobileMenu, setShowUserMobileMenu] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
     const createPostRef = useRef<HTMLDivElement>(null);
     const trendingRef = useRef<HTMLDivElement>(null);
     const userMenuRef = useRef<HTMLDivElement>(null);
+    const userMenuMobileRef = useRef<HTMLDivElement>(null);
     const searchRef = useRef<HTMLDivElement>(null);
+    const searchMobileRef = useRef<HTMLDivElement>(null);
     const { user } = useAuthStore();
     const notificationRef = useRef<HTMLDivElement>(null);
     const { color1, color2 } = useColorStore();
@@ -163,8 +166,20 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
             if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
                 setShowUserMenu(false);
             }
+            if (
+                userMenuMobileRef.current &&
+                !userMenuMobileRef.current.contains(event.target as Node)
+            ) {
+                setShowUserMobileMenu(false);
+            }
             if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
                 setOnClickSearch(false);
+            }
+            if (
+                searchMobileRef.current &&
+                !searchMobileRef.current.contains(event.target as Node)
+            ) {
+                setOnClickSearchMobile(false);
             }
         };
 
@@ -198,15 +213,12 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
 
     const handleNotificationClick = (notification: Notification) => {
         if (!notification.isRead) {
-            console.log('Marquage de la notification comme lue:', notification._id);
-            // Marquer comme lue dans l'API
             markAsRead(notification._id);
         }
     };
 
     return (
         <>
-            {/* Navbar desktop */}
             <nav className="absolute top-0 left-0 w-full hidden md:flex justify-between items-center p-6 md:p-8 z-10">
                 <div className="navbar-brand">
                     <motion.h1
@@ -217,11 +229,11 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                         TakeIt
                     </motion.h1>
                 </div>
-                <div className="relative flex flex-row justify-between gap-10">
+                <div className="relative hidden md:flex flex-row justify-between gap-2">
                     <motion.form
                         onSubmit={handleSearchSubmit}
                         onClick={() => setOnClickSearch(true)}
-                        className="relative flex flex-row justify-between items-center gap-2 py-2 px-4 rounded-full text-white border-white border-2 text-lg md:text-2xl"
+                        className="relative flex flex-row justify-between items-center gap-2 py-2 px-4 rounded-full text-white border-white border-2 text-lg"
                     >
                         <input
                             type="text"
@@ -254,8 +266,8 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                         <Plus size={24} />
                     </motion.button>
                 </div>
-                <div className="relative flex flex-row justify-between items-center gap-10">
-                    <div className="flex flex-row justify-between items-center gap-10 py-2 px-4 rounded-full text-white text-lg md:text-2xl">
+                <div className="relative flex flex-row justify-between items-center">
+                    <div className="flex flex-row justify-between items-center  gap-2 lg:gap-10 py-2 px-4 rounded-full text-white text-lg md:text-2xl">
                         <motion.div
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
@@ -299,7 +311,6 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                             </Link>
                         </motion.div>
 
-                        {/* Icône de notification avec badge */}
                         <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                             <NotificationPanel />
                         </motion.div>
@@ -340,23 +351,6 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                             </motion.div>
                         )}
                     </div>
-                    {isTrendingOpen && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.2 }}
-                            className="absolute top-24 right-0 w-full z-20"
-                            ref={trendingRef}
-                        >
-                            <motion.div
-                                whileHover={{ scale: 1.02 }}
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <Trending />
-                            </motion.div>
-                        </motion.div>
-                    )}
                 </div>
             </nav>
 
@@ -375,57 +369,80 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                 <motion.div
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    className="flex flex-col items-center"
-                    onClick={() => {
-                        setSearchQuery('');
-                        navigateTo('/search');
-                    }}
+                    className="flex flex-col items-center cursor-pointer"
                 >
-                    <Link to="/search">
-                        <Search size={24} className="text-white" />
-                    </Link>
+                    <Search
+                        size={24}
+                        className="text-white"
+                        onClick={() => setOnClickSearchMobile(true)}
+                    />
                 </motion.div>
+                <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    className="flex flex-row justify-between items-center gap-2 py-2 px-4 rounded-full text-white border-white border-2 text-lg md:text-2xl"
+                    onClick={() => setIsCreatePostOpen(true)}
+                >
+                    <Plus size={24} />
+                </motion.button>
                 <motion.div
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     className="flex flex-col items-center"
+                    onClick={() => setIsTrendingOpen(!isTrendingOpen)}
                 >
-                    <Link to={`/profile/${user?.username}?tab=bookmarks`}>
-                        <Bookmark size={24} className="text-white" />
-                    </Link>
+                    <Flame size={24} className="text-white" />
                 </motion.div>
 
-                {/* Icône de notifications pour mobile */}
-                <motion.div
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="flex flex-col items-center"
-                >
-                    <NotificationPanel />
-                </motion.div>
+                <div className="relative">
+                    <motion.div
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setShowUserMobileMenu(!showUserMobileMenu)}
+                        className="rounded-full overflow-hidden cursor-pointer flex items-center justify-center"
+                    >
+                        <User className="text-white" size={26} />
+                    </motion.div>
 
-                <motion.div
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="flex flex-col items-center"
-                    onClick={() => handleLogout()}
-                >
-                    <Link to="/login">
-                        <LogOut size={24} className="text-white" />
-                    </Link>
-                </motion.div>
+                    {showUserMobileMenu && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="absolute right-0 -translate-y-[150px] md:translate-y-1/2 mt-2 w-48 bg-black/80 backdrop-blur-md rounded-lg shadow-lg py-2 z-20"
+                            ref={userMenuMobileRef}
+                        >
+                            <motion.button
+                                whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                                onClick={() => navigateTo(`/profile/${user?.username}`)}
+                                className="flex items-center gap-2 w-full px-4 py-2 text-white text-left"
+                            >
+                                <User size={18} />
+                                <span>Mon Profil</span>
+                            </motion.button>
+                            <motion.button
+                                whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                                onClick={handleLogout}
+                                className="flex items-center gap-2 w-full px-4 py-2 text-white text-left"
+                            >
+                                <LogOut size={18} />
+                                <span>Déconnexion</span>
+                            </motion.button>
+                        </motion.div>
+                    )}
+                </div>
             </nav>
-
+            <motion.div className="fixed top-0 right-0 md:hidden p-3  z-10">
+                <NotificationPanel />
+            </motion.div>
             {isCreatePostOpen && (
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute top-24 right-0 p-6 -translate-x-1/6 w-1/2 h-1/2 z-20"
+                    className="absolute bottom-20 md:bottom-0 md:top-24 right-[25%] md:right-1/3 z-20"
                 >
                     <motion.div
-                        className="relative w-1/2"
+                        className="relative"
                         whileHover={{ scale: 1.02 }}
                         ref={createPostRef}
                     >
@@ -438,6 +455,32 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                         <motion.div className="relative p-3 bg-black/70 backdrop-blur-sm rounded-lg">
                             <CreatePostForm />
                         </motion.div>
+                    </motion.div>
+                </motion.div>
+            )}
+            {onClickSearchMobile && (
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute md:hidden top-0 right-0 w-full z-20 p-4"
+                    ref={searchMobileRef}
+                >
+                    <RechercheAvancee onClose={() => setOnClickSearch(false)} />
+                </motion.div>
+            )}
+            {isTrendingOpen && (
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute bottom-20 md:bottom-0 md:top-24 right-4  z-20"
+                    ref={trendingRef}
+                >
+                    <motion.div whileHover={{ scale: 1.02 }} onClick={(e) => e.stopPropagation()}>
+                        <Trending />
                     </motion.div>
                 </motion.div>
             )}

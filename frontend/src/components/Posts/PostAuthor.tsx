@@ -2,9 +2,10 @@ import { useFollowUser, useUnfollowUser } from '@/services/queries/interactionQu
 import { Post } from '@/types';
 
 import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 import { motion } from 'framer-motion';
-import { MoreVertical, User as UserIcon } from 'lucide-react';
+import { Share, User as UserIcon } from 'lucide-react';
 
 interface PostAuthorProps {
     post: Post;
@@ -33,7 +34,15 @@ function PostAuthor({ post, currentUser }: PostAuthorProps) {
             </div>
             {post.author.username === currentUser?.username ? (
                 <button className="top-0 right-0">
-                    <MoreVertical size={24} />
+                    <Share
+                        size={24}
+                        onClick={() => {
+                            navigator.clipboard.writeText(
+                                window.location.href + `post/${post._id}`
+                            );
+                            toast.success('Lien copié dans le presse-papiers');
+                        }}
+                    />
                 </button>
             ) : (
                 <motion.button

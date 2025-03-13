@@ -37,8 +37,8 @@ function PostActions({ post, timeAgo, onCommentsToggle }: PostActionsProps) {
     const { mutate: deleteRetweet } = useDeleteRetweet();
 
     return (
-        <div className="flex flex-row justify-between items-center gap-4 sm:gap-10">
-            <div className="flex flex-row justify-between items-center gap-4 sm:gap-10 py-2 px-2 sm:px-4 rounded-full text-white">
+        <div className="flex flex-col items-start gap-4">
+            <div className="flex flex-row justify-between items-center w-full md:w-auto gap-4 sm:gap-10 py-2 px-2 sm:px-4 rounded-full text-white">
                 <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
@@ -174,8 +174,8 @@ function PostActions({ post, timeAgo, onCommentsToggle }: PostActionsProps) {
                         fill={post.hasBookmarked ? 'currentColor' : 'none'}
                     />
                 </motion.button>
-                <p className="m-0 text-sm sm:text-lg">{timeAgo}</p>
             </div>
+            <p className="mt-5 text-sm sm:text-lg">{timeAgo}</p>
         </div>
     );
 }

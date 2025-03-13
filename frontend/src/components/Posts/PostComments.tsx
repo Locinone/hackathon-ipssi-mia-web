@@ -77,7 +77,7 @@ function PostComments({ postId, onClose }: PostCommentsProps) {
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="absolute p-4 bg-black z-[100] h-full gap-4 w-1/3 right-0"
+                className="absolute p-4 bg-black z-[100] h-full gap-4 w-full lg:w-1/3 right-0"
             >
                 {showReplies ? (
                     <Fragment>
@@ -112,8 +112,8 @@ function PostComments({ postId, onClose }: PostCommentsProps) {
                     </Fragment>
                 ) : (
                     <Fragment>
-                        <div className="flex flex-row justify-between items-center gap-4">
-                            <p className="text-white text-2xl font-bold">Commentaires</p>
+                        <div className="flex flex-row justify-between items-center gap-4 mb-4">
+                            <p className="text-white text-2xl font-bold ">Commentaires</p>
                             <motion.button
                                 onClick={onClose}
                                 whileHover={{ scale: 1.1 }}
@@ -129,13 +129,15 @@ function PostComments({ postId, onClose }: PostCommentsProps) {
                         {comments &&
                             comments.data &&
                             comments.data.map((comment: Comment) => (
-                                <CommentCard
-                                    key={comment._id}
-                                    comment={comment}
-                                    setShowReplies={() => {
-                                        handleShowReplies(comment);
-                                    }}
-                                />
+                                <div className="mt-2">
+                                    <CommentCard
+                                        key={comment._id}
+                                        comment={comment}
+                                        setShowReplies={() => {
+                                            handleShowReplies(comment);
+                                        }}
+                                    />
+                                </div>
                             ))}
                     </Fragment>
                 )}

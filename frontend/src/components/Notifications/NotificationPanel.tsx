@@ -61,18 +61,18 @@ const NotificationPanel: React.FC = () => {
     const getNotificationIcon = (type: string) => {
         switch (type) {
             case 'like':
-                return <Heart className="w-5 h-5 text-red-500" />;
+                return <Heart fill="currentColor" className="w-5 h-5 text-red-500" />;
             case 'comment':
             case 'answer':
-                return <MessageCircle className="w-5 h-5 text-blue-500" />;
+                return <MessageCircle fill="currentColor" className="w-5 h-5 text-blue-500" />;
             case 'follow':
-                return <UserPlus className="w-5 h-5 text-green-500" />;
+                return <UserPlus fill="currentColor" className="w-5 h-5 text-green-500" />;
             case 'retweet':
-                return <Repeat className="w-5 h-5 text-green-500" />;
+                return <Repeat fill="currentColor" className="w-5 h-5 text-green-500" />;
             case 'bookmark':
-                return <Bookmark className="w-5 h-5 text-purple-500" />;
+                return <Bookmark fill="currentColor" className="w-5 h-5 text-purple-500" />;
             default:
-                return <Bell className="w-5 h-5 text-gray-500" />;
+                return <Bell fill="currentColor" className="w-5 h-5 text-gray-500" />;
         }
     };
 
@@ -107,23 +107,13 @@ const NotificationPanel: React.FC = () => {
                 onClick={() => setIsOpen(!isOpen)}
                 aria-label="Notifications"
             >
-                <Bell className="w-6 h-6" />
+                <Bell className="w-6 h-6 text-white" />
                 {unreadCount > 0 && (
                     <span className="absolute top-0 right-0 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
                         {unreadCount}
                     </span>
                 )}
             </button>
-
-            {/* Indicateur de connexion */}
-            <div className="absolute -bottom-1 -right-1">
-                <div
-                    className={`w-3 h-3 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}
-                    title={
-                        connected ? 'Connecté aux notifications' : 'Déconnecté des notifications'
-                    }
-                />
-            </div>
 
             {/* Panneau de notifications */}
             {isOpen && (

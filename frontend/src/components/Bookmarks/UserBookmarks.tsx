@@ -176,7 +176,13 @@ const UserBookmarks: React.FC = () => {
     const { username } = useParams();
     const { user: currentUser } = useAuthStore();
     const { data: userData } = useUserProfile(username);
-    const { data: userBookmarks, isLoading, error, refetch, isError } = useGetUserBookmarks();
+    const {
+        data: userBookmarks,
+        isLoading,
+        error,
+        refetch,
+        isError,
+    } = useGetUserBookmarks() as any;
 
     // État pour contrôler l'affichage des données mockées
     const [showMockData, setShowMockData] = useState(false);
@@ -200,7 +206,7 @@ const UserBookmarks: React.FC = () => {
 
         // Si c'est le profil de l'utilisateur connecté, on tente de récupérer ses bookmarks
         console.log('Consultation de son propre profil - tentative de récupération des bookmarks');
-        refetch().catch((error) => {
+        refetch().catch((error: any) => {
             console.error('Erreur lors du refetch des bookmarks:', error);
             // En cas d'erreur, afficher les données mockées
             setShowMockData(true);
@@ -277,7 +283,7 @@ const UserBookmarks: React.FC = () => {
                         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                         onClick={() => {
                             toast.info('Tentative de récupération des bookmarks...');
-                            refetch().catch((err) => {
+                            refetch().catch((err: any) => {
                                 console.error('Nouvelle erreur lors du refetch:', err);
                                 toast.error('Échec de la récupération. Affichage des exemples.');
                                 setShowMockData(true);
@@ -308,12 +314,6 @@ const UserBookmarks: React.FC = () => {
                 <p className="text-gray-500 mt-1">
                     Pour enregistrer un post, cliquez sur l'icône de signet sous le post.
                 </p>
-                <button
-                    className="mt-6 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
-                    onClick={() => setShowMockData(true)}
-                >
-                    Voir à quoi ressemblent les posts enregistrés
-                </button>
             </div>
         );
     }
@@ -323,7 +323,7 @@ const UserBookmarks: React.FC = () => {
             <h2 className="text-white text-lg font-semibold mb-4">
                 Vos posts enregistrés ({userBookmarks.length})
             </h2>
-            {userBookmarks.map((post) => (
+            {userBookmarks.map((post: Post) => (
                 <BookmarkedPostCard key={post._id || `post-${Math.random()}`} post={post} />
             ))}
         </div>
