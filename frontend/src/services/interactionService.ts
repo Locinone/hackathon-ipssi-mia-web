@@ -1,4 +1,4 @@
-import { ApiResponse, Comment, Post, User } from '@/types';
+import { ApiResponse, Comment, FollowResponse, Post, UnfollowResponse } from '@/types';
 
 import { api } from './api';
 
@@ -153,24 +153,58 @@ class InteractionService {
         }
     }
 
-    public async followUser(userId: string): Promise<ApiResponse<User>> {
-        const response = await api.fetchRequest(
-            `${this.apiUrl}/followers/${userId}/follow`,
-            'POST',
-            null,
-            true
-        );
-        return response.data;
+    /**
+     * Suivre un utilisateur
+     * @param userId ID de l'utilisateur à suivre
+     */
+    public async followUser(userId: string): Promise<ApiResponse<FollowResponse>> {
+        try {
+            console.log(`Service - Suivre l'utilisateur ${userId}`);
+            const response = await api.fetchRequest(
+                `${this.apiUrl}/follow/${userId}`,
+                'POST',
+                null,
+                true
+            );
+
+            if (!response.success) {
+                console.error("Service - Erreur lors du suivi de l'utilisateur:", response.message);
+                throw new Error(response.message || "Erreur lors du suivi de l'utilisateur");
+            }
+
+            console.log('Service - Utilisateur suivi avec succès:', response.data);
+            return response;
+        } catch (error) {
+            console.error("Service - Exception lors du suivi de l'utilisateur:", error);
+            throw error;
+        }
     }
 
-    public async unfollowUser(userId: string): Promise<ApiResponse<User>> {
-        const response = await api.fetchRequest(
-            `${this.apiUrl}/followers/${userId}/unfollow`,
-            'DELETE',
-            null,
-            true
-        );
-        return response.data;
+    /**
+     * Ne plus suivre un utilisateur
+     * @param userId ID de l'utilisateur à ne plus suivre
+     */
+    public async unfollowUser(userId: string): Promise<ApiResponse<UnfollowResponse>> {
+        try {
+            console.log(`Service - Ne plus suivre l'utilisateur ${userId}`);
+            const response = await api.fetchRequest(
+                `${this.apiUrl}/unfollow/${userId}`,
+                'DELETE',
+                null,
+                true
+            );
+
+            if (!response.success) {
+                console.error('Service - Erreur lors du désabonnement:', response.message);
+                throw new Error(response.message || 'Erreur lors du désabonnement');
+            }
+
+            console.log('Service - Désabonnement effectué avec succès:', response.data);
+            return response;
+        } catch (error) {
+            console.error('Service - Exception lors du désabonnement:', error);
+            throw error;
+        }
     }
 
     public async getUserRetweets(userId: string) {
