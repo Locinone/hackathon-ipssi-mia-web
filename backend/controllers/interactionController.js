@@ -64,6 +64,45 @@ const createLike = async (req, res) => {
     }
 };
 
+const getLikesByUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        console.log(`Récupération des likes pour l'utilisateur: ${userId}`);
+
+        // Vérifier que l'ID utilisateur est valide
+        if (!userId || userId === 'undefined') {
+            console.error('ID utilisateur invalide:', userId);
+            return jsonResponse(res, 'ID utilisateur invalide', 400, null);
+        }
+
+        // Récupérer les interactions de type "like" pour cet utilisateur
+        const likes = await Interaction.find({ user: userId, like: true });
+        console.log(`${likes.length} likes trouvés pour l'utilisateur ${userId}`);
+
+        if (!likes || likes.length === 0) {
+            return jsonResponse(res, 'Aucun like trouvé pour cet utilisateur', 200, []);
+        }
+
+        // Extraire les IDs des posts likés
+        const postIds = likes.map(like => like.post);
+        console.log(`IDs des posts likés: ${postIds.join(', ')}`);
+
+        // Récupérer les posts complets
+        const posts = await Post.find({ _id: { $in: postIds } })
+            .populate('author', 'name username image')
+            .populate('comments')
+            .sort({ createdAt: -1 });
+
+        console.log(`${posts.length} posts likés trouvés pour l'utilisateur ${userId}`);
+
+        return jsonResponse(res, 'Posts likés récupérés avec succès', 200, posts);
+    } catch (error) {
+        console.error('Erreur lors de la récupération des likes:', error);
+        return jsonResponse(res, error.message, 500, null);
+    }
+};
+
 const createDislike = async (req, res) => {
     try {
         const { postId } = req.params;
@@ -397,7 +436,14 @@ const deleteRetweet = async (req, res) => {
 const createBookmark = async (req, res) => {
     try {
         const { postId } = req.params;
-        const { userId } = req.user;
+        const userId = req.user?.id;
+
+        // Vérification que l'utilisateur est bien authentifié
+        if (!userId) {
+            return jsonResponse(res, 'Utilisateur non authentifié', 401, null);
+        }
+
+        console.log(`Création d'un bookmark - User ID: ${userId}, Post ID: ${postId}`);
 
         const post = await Post.findById(postId);
         if (!post) {
@@ -414,10 +460,20 @@ const createBookmark = async (req, res) => {
             user: userId
         });
 
+        // Validation explicite avant sauvegarde
+        try {
+            await bookmark.validate();
+        } catch (validationError) {
+            console.error('Erreur de validation du bookmark:', validationError);
+            return jsonResponse(res, `Erreur de validation: ${validationError.message}`, 400, null);
+        }
+
         await bookmark.save();
+        console.log(`Bookmark créé avec succès - ID: ${bookmark._id}`);
 
         return jsonResponse(res, 'Post ajouté aux signets', 201, bookmark);
     } catch (error) {
+        console.error('Erreur lors de la création du bookmark:', error);
         return jsonResponse(res, error.message, 500, null);
     }
 };
@@ -442,31 +498,75 @@ const deleteBookmark = async (req, res) => {
 
 const getUserBookmarks = async (req, res) => {
     try {
-        const { userId } = req.user;
+        const userId = req.user?.id;
+
+        // Vérification que l'utilisateur est bien authentifié
+        if (!userId) {
+            console.error('Récupération des bookmarks - Utilisateur non authentifié');
+            return jsonResponse(res, 'Utilisateur non authentifié', 401, null);
+        }
+
+        console.log(`Récupération des bookmarks pour l'utilisateur: ${userId}`);
+
+        // S'assurer que tous les modèles nécessaires sont importés
+        // Cela garantit que les schémas sont enregistrés avant d'être utilisés dans populate
+        const Interaction = require('../models/Interaction');
+        const Post = require('../models/Post');
+        const User = require('../models/User');
+        const Comment = require('../models/Comment');
 
         const bookmarks = await Bookmark.find({ user: userId })
             .populate({
                 path: 'post',
                 populate: [
-                    { path: 'author', select: 'username profilePicture' },
-                    { path: 'likes' },
-                    { path: 'dislikes' },
-                    { path: 'comments' },
-                    { path: 'retweets' }
+                    { path: 'author', select: 'name username image' }
+                    // Suppression des populations qui causent des problèmes
+                    // Nous les ajouterons manuellement si nécessaire
                 ]
             })
             .sort({ createdAt: -1 });
 
-        const posts = bookmarks.map(bookmark => bookmark.post);
+        console.log(`${bookmarks.length} bookmarks trouvés pour l'utilisateur ${userId}`);
 
-        return jsonResponse(res, 'Signets récupérés avec succès', 200, posts);
+        // Filtrer les posts null (qui pourraient avoir été supprimés)
+        const validBookmarks = bookmarks.filter(bookmark => bookmark.post);
+        if (validBookmarks.length < bookmarks.length) {
+            console.log(`${bookmarks.length - validBookmarks.length} bookmarks avec des posts supprimés ont été filtrés`);
+        }
+
+        // Extraire les posts et ajouter manuellement les informations nécessaires
+        const posts = await Promise.all(validBookmarks.map(async (bookmark) => {
+            const post = bookmark.post;
+
+            // Récupérer les likes, commentaires et retweets séparément
+            if (post) {
+                // Compter les likes au lieu de les récupérer complètement
+                const likesCount = await Interaction.countDocuments({ post: post._id, like: true });
+                post.likesCount = likesCount;
+
+                // Compter les commentaires
+                const commentsCount = await Comment.countDocuments({ post: post._id });
+                post.commentsCount = commentsCount;
+
+                return post;
+            }
+            return null;
+        }));
+
+        // Filtrer les posts null
+        const validPosts = posts.filter(post => post !== null);
+
+        console.log(`Retour de ${validPosts.length} posts valides`);
+        return jsonResponse(res, 'Signets récupérés avec succès', 200, validPosts);
     } catch (error) {
+        console.error('Erreur lors de la récupération des bookmarks:', error);
         return jsonResponse(res, error.message, 500, null);
     }
 };
 
 module.exports = {
     createLike,
+    getLikesByUser,
     deleteLike,
     createDislike,
     deleteDislike,

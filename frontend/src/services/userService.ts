@@ -22,7 +22,7 @@ class UserService {
     }
 
     public async getCurrentUser(): Promise<ApiResponse<User>> {
-        const response = await api.fetchRequest(`${this.apiUrl}/me`, 'GET', null, true);
+        const response = await api.fetchRequest(`${this.apiUrl}/me`, 'GET');
         return response as ApiResponse<User>;
     }
 
@@ -47,6 +47,36 @@ class UserService {
         } catch (error) {
             console.error(`Service - Erreur lors de la récupération du profil ${username}:`, error);
             throw error;
+        }
+    }
+
+    public async getUserFollowers(userId: string): Promise<ApiResponse<User[]>> {
+        try {
+            console.log(`Service - Récupération des abonnés pour l'utilisateur: ${userId}`);
+            const response = await api.fetchRequest(`${this.apiUrl}/followers/${userId}`, 'GET');
+            return response as ApiResponse<User[]>;
+        } catch (error) {
+            console.error(`Service - Erreur lors de la récupération des abonnés:`, error);
+            return {
+                success: false,
+                message: error instanceof Error ? error.message : 'Erreur inconnue',
+                data: [],
+            };
+        }
+    }
+
+    public async getUserFollowing(userId: string): Promise<ApiResponse<User[]>> {
+        try {
+            console.log(`Service - Récupération des abonnements pour l'utilisateur: ${userId}`);
+            const response = await api.fetchRequest(`${this.apiUrl}/following/${userId}`, 'GET');
+            return response as ApiResponse<User[]>;
+        } catch (error) {
+            console.error(`Service - Erreur lors de la récupération des abonnements:`, error);
+            return {
+                success: false,
+                message: error instanceof Error ? error.message : 'Erreur inconnue',
+                data: [],
+            };
         }
     }
 

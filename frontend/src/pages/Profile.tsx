@@ -1,25 +1,37 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 import { Calendar, Link as LinkIcon, MapPin } from 'lucide-react';
 
+import UserBookmarks from '../components/Bookmarks/UserBookmarks';
 import UserComments from '../components/Comments/Comments';
+import UserLikes from '../components/Likes/UserLikes';
 import Posts from '../components/Posts/Posts';
 import ProfileEditForm from '../components/ProfileEditForm';
 import Loader from '../components/ui/Loader';
 import { updateUserSchema } from '../schemas/authSchemas';
 import { api } from '../services/api';
 import { useGetPostsByUserId } from '../services/queries/postQueries';
-import { useUpdateUserProfile, useUserProfile } from '../services/queries/useUserProfile';
+import {
+    useUpdateUserProfile,
+    useUserFollowers,
+    useUserFollowing,
+    useUserProfile,
+} from '../services/queries/useUserProfile';
 
 // Les données mockées userPosts, userComments, userLikes, userDislikes restent inchangées
 
+// Type pour la modal des abonnements/abonnés
+type FollowModalType = 'followers' | 'following' | null;
+
 const Profile = () => {
     const { username } = useParams();
+    const location = useLocation();
     const [activeTab, setActiveTab] = useState('posts');
     const [isScrolled, setIsScrolled] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [followModal, setFollowModal] = useState<FollowModalType>(null);
     const [formData, setFormData] = useState({
         name: '',
         username: '',
@@ -27,6 +39,16 @@ const Profile = () => {
         location: '',
         link: '',
     });
+
+    // Récupérer le paramètre tab de l'URL
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        const tabParam = searchParams.get('tab');
+        if (tabParam && ['posts', 'comments', 'likes', 'bookmarks'].includes(tabParam)) {
+            setActiveTab(tabParam);
+            console.log(`Onglet activé depuis l'URL: ${tabParam}`);
+        }
+    }, [location.search]);
 
     const { data: userData, isLoading, error } = useUserProfile(username);
     const {
@@ -36,7 +58,26 @@ const Profile = () => {
     } = useGetPostsByUserId(userData?._id);
     const { mutate: updateUserProfile, isPending: isUpdating } = useUpdateUserProfile();
 
+    // Récupérer les abonnés et les abonnements
+    const { data: followers, isLoading: isLoadingFollowers } = useUserFollowers(
+        followModal === 'followers' ? userData?._id : undefined
+    );
+
+    const { data: following, isLoading: isLoadingFollowing } = useUserFollowing(
+        followModal === 'following' ? userData?._id : undefined
+    );
+
     const baseUrl = api.getUrl();
+
+    // Fonction pour ouvrir la modal des abonnements/abonnés
+    const openFollowModal = (type: FollowModalType) => {
+        setFollowModal(type);
+    };
+
+    // Fonction pour fermer la modal des abonnements/abonnés
+    const closeFollowModal = () => {
+        setFollowModal(null);
+    };
 
     useEffect(() => {
         const handleScroll = () => {
@@ -147,6 +188,14 @@ const Profile = () => {
                 .refresh-animation {
                     animation: refresh-fade 0.5s ease-in-out;
                 }
+                
+                @keyframes slideDown {
+                    0% { transform: translateY(-20px); opacity: 0; }
+                    100% { transform: translateY(0); opacity: 1; }
+                }
+                .animate-slideDown {
+                    animation: slideDown 0.3s ease-out forwards;
+                }
                 `}
             </style>
             <div className="relative px-32 pt-32 profile-container">
@@ -208,13 +257,19 @@ const Profile = () => {
                         </div>
 
                         <div className="flex gap-4 my-3">
-                            <div>
+                            <div
+                                className="cursor-pointer hover:underline"
+                                onClick={() => openFollowModal('following')}
+                            >
                                 <span className="font-bold text-white">
                                     {userData.following.length}
                                 </span>{' '}
                                 <span className="text-gray-500">abonnements</span>
                             </div>
-                            <div>
+                            <div
+                                className="cursor-pointer hover:underline"
+                                onClick={() => openFollowModal('followers')}
+                            >
                                 <span className="font-bold text-white">
                                     {userData.followers.length}
                                 </span>{' '}
@@ -234,7 +289,7 @@ const Profile = () => {
                 </div>
                 <div className="border-b border-gray-200 mt-4">
                     <div className="flex overflow-x-auto">
-                        {['posts', 'comments', 'likes', 'dislikes'].map((tab) => (
+                        {['posts', 'comments', 'likes', 'bookmarks'].map((tab) => (
                             <button
                                 key={tab}
                                 className={`px-4 py-3 font-medium text-sm flex-1 blackspace-nowrap ${
@@ -269,23 +324,182 @@ const Profile = () => {
                         </>
                     )}
                     {activeTab === 'comments' && <UserComments />}
-                    {activeTab === 'likes' && (
-                        <div className="text-white p-4 text-center">
-                            <p>Les posts aimés par l'utilisateur seront affichés ici.</p>
-                        </div>
-                    )}
-                    {activeTab === 'dislikes' && (
-                        <div className="text-white p-4 text-center">
-                            <p>Les posts non aimés par l'utilisateur seront affichés ici.</p>
-                        </div>
-                    )}
+                    {activeTab === 'likes' && <UserLikes />}
+                    {activeTab === 'bookmarks' && <UserBookmarks />}
                 </div>
 
+                {/* Modal pour modifier le profil */}
                 {isModalOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
-                        <div className="bg-white p-6 rounded shadow-lg w-96">
-                            <h2 className="text-xl font-bold mb-4">Modifier le profil</h2>
-                            <ProfileEditForm onSubmit={handleSubmit} initialData={formData} />
+                    <div
+                        className="fixed inset-0 flex items-start justify-center z-50 pt-20 animate-slideDown"
+                        onClick={(e) => {
+                            // Fermer la modal si on clique en dehors de celle-ci
+                            if (e.target === e.currentTarget) {
+                                setIsModalOpen(false);
+                            }
+                        }}
+                    >
+                        <div className="bg-black border border-gray-800 rounded-xl shadow-lg w-full max-w-md mx-4 overflow-hidden">
+                            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+                                <h2 className="text-xl font-bold text-white">Modifier le profil</h2>
+                                <button
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="text-gray-400 hover:text-white transition-colors"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-6 w-6"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M6 18L18 6M6 6l12 12"
+                                        />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div className="p-6">
+                                <ProfileEditForm
+                                    onSubmit={handleSubmit}
+                                    initialData={formData}
+                                    isUpdating={isUpdating}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal pour afficher les abonnements/abonnés */}
+                {followModal && (
+                    <div
+                        className="fixed inset-0 flex items-start justify-center z-50 pt-20 animate-slideDown"
+                        onClick={(e) => {
+                            // Fermer la modal si on clique en dehors de celle-ci
+                            if (e.target === e.currentTarget) {
+                                closeFollowModal();
+                            }
+                        }}
+                    >
+                        <div className="bg-black border border-gray-800 rounded-xl shadow-lg w-full max-w-md mx-4 overflow-hidden">
+                            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+                                <h2 className="text-xl font-bold text-white">
+                                    {followModal === 'followers' ? 'Abonnés' : 'Abonnements'}
+                                </h2>
+                                <button
+                                    onClick={closeFollowModal}
+                                    className="text-gray-400 hover:text-white transition-colors"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-6 w-6"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M6 18L18 6M6 6l12 12"
+                                        />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div className="p-4 max-h-96 overflow-y-auto">
+                                {followModal === 'followers' ? (
+                                    isLoadingFollowers ? (
+                                        <div className="flex justify-center py-8">
+                                            <Loader />
+                                        </div>
+                                    ) : followers && followers.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {followers.map((follower) => (
+                                                <div
+                                                    key={follower._id}
+                                                    className="flex items-center space-x-3 p-2 hover:bg-gray-900 rounded-lg"
+                                                >
+                                                    <div className="w-10 h-10 rounded-full overflow-hidden">
+                                                        {follower.image ? (
+                                                            <img
+                                                                src={`${baseUrl}${follower.image}`}
+                                                                alt={follower.name || 'Utilisateur'}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-gray-700 flex items-center justify-center text-white">
+                                                                {(follower.name || 'U')
+                                                                    .charAt(0)
+                                                                    .toUpperCase()}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-white font-medium">
+                                                            {follower.name || 'Utilisateur'}
+                                                        </p>
+                                                        <p className="text-gray-400 text-sm">
+                                                            @{follower.username || 'utilisateur'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8">
+                                            <p className="text-gray-400">
+                                                Aucun abonné pour le moment
+                                            </p>
+                                        </div>
+                                    )
+                                ) : isLoadingFollowing ? (
+                                    <div className="flex justify-center py-8">
+                                        <Loader />
+                                    </div>
+                                ) : following && following.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {following.map((follow) => (
+                                            <div
+                                                key={follow._id}
+                                                className="flex items-center space-x-3 p-2 hover:bg-gray-900 rounded-lg"
+                                            >
+                                                <div className="w-10 h-10 rounded-full overflow-hidden">
+                                                    {follow.image ? (
+                                                        <img
+                                                            src={`${baseUrl}${follow.image}`}
+                                                            alt={follow.name || 'Utilisateur'}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-gray-700 flex items-center justify-center text-white">
+                                                            {(follow.name || 'U')
+                                                                .charAt(0)
+                                                                .toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <p className="text-white font-medium">
+                                                        {follow.name || 'Utilisateur'}
+                                                    </p>
+                                                    <p className="text-gray-400 text-sm">
+                                                        @{follow.username || 'utilisateur'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8">
+                                        <p className="text-gray-400">
+                                            Aucun abonnement pour le moment
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}

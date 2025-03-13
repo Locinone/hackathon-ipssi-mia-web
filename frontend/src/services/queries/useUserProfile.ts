@@ -36,6 +36,52 @@ export const useUserProfile = (username: string | undefined) => {
     });
 };
 
+// Hook pour récupérer les abonnés d'un utilisateur
+export const useUserFollowers = (userId: string | undefined) => {
+    return useQuery({
+        queryKey: ['userFollowers', userId],
+        queryFn: async () => {
+            if (!userId) return [];
+            console.log('Récupération des abonnés pour:', userId);
+            const response = await userService.getUserFollowers(userId);
+
+            if (!response.success || !response.data) {
+                console.error('Erreur lors de la récupération des abonnés:', response.message);
+                return [];
+            }
+
+            return response.data;
+        },
+        enabled: !!userId,
+        staleTime: 0,
+        gcTime: 1000 * 60,
+        refetchOnWindowFocus: false,
+    });
+};
+
+// Hook pour récupérer les abonnements d'un utilisateur
+export const useUserFollowing = (userId: string | undefined) => {
+    return useQuery({
+        queryKey: ['userFollowing', userId],
+        queryFn: async () => {
+            if (!userId) return [];
+            console.log('Récupération des abonnements pour:', userId);
+            const response = await userService.getUserFollowing(userId);
+
+            if (!response.success || !response.data) {
+                console.error('Erreur lors de la récupération des abonnements:', response.message);
+                return [];
+            }
+
+            return response.data;
+        },
+        enabled: !!userId,
+        staleTime: 0,
+        gcTime: 1000 * 60,
+        refetchOnWindowFocus: false,
+    });
+};
+
 // update user profile
 export const useUpdateUserProfile = () => {
     const queryClient = useQueryClient();

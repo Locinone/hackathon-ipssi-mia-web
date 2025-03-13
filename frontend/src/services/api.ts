@@ -98,55 +98,50 @@ class Interceptor {
 
     // Fonction générique pour gérer toutes les requêtes HTTP
     public async fetchRequest<T>(
-        url: string,
-        method: string,
-        data: any = null,
-        auth: boolean = false
+        endpoint: string,
+        method: string = 'GET',
+        body: any = null,
+        customHeaders: Record<string, string> = {}
     ): Promise<ApiResponse<T>> {
         try {
-            console.log(`API - Requête ${method} à ${url}`, { data, auth });
+            const url = `${this.url}${endpoint}`;
+            console.log(`API - Requête ${method} vers: ${url}`);
 
-            const headers: HeadersInit = {
+            // Récupérer le token depuis les cookies ou le localStorage
+            const tokenFromCookies = Cookies.get('accessToken');
+            const tokenFromLocalStorage = localStorage.getItem('token');
+            const token = tokenFromCookies || tokenFromLocalStorage;
+
+            // Préparer les en-têtes avec le token d'authentification
+            const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
+                ...customHeaders,
             };
 
-            if (auth) {
-                // Vérifier d'abord le token dans les cookies
-                let token = Cookies.get('accessToken');
-
-                // Si pas trouvé, essayer dans localStorage (pour la compatibilité)
-                if (!token) {
-                    token = localStorage.getItem('token');
-                }
-
-                if (!token) {
-                    console.error("API - Token d'authentification manquant");
-                    return {
-                        success: false,
-                        message: 'Veuillez vous connecter pour accéder à cette fonctionnalité',
-                        data: null,
-                    };
-                }
-
+            // Ajouter le token d'authentification s'il existe
+            if (token) {
                 headers['Authorization'] = `Bearer ${token}`;
-                console.log('API - Token utilisé:', token.substring(0, 10) + '...');
+                console.log(
+                    "Token d'authentification inclus dans la requête:",
+                    token.substring(0, 10) + '...'
+                );
+            } else {
+                console.warn(
+                    "Aucun token d'authentification trouvé (ni dans les cookies, ni dans le localStorage)"
+                );
             }
 
             const options: RequestInit = {
                 method,
                 headers,
-                credentials: 'include',
+                credentials: 'include', // Pour inclure les cookies dans les requêtes cross-origin
             };
 
-            if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
-                options.body = JSON.stringify(data);
-                console.log('API - Corps de la requête:', options.body);
+            if (body && method !== 'GET') {
+                options.body = JSON.stringify(body);
             }
 
-            console.log(`API - URL complète: ${this.url}${url}`);
-            console.log('API - Options:', JSON.stringify(options));
-
-            const response = await fetch(`${this.url}${url}`, options);
+            const response = await fetch(url, options);
             console.log(`API - Statut de la réponse: ${response.status}`);
 
             if (!response.ok) {
