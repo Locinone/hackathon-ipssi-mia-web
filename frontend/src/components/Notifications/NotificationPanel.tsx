@@ -1,9 +1,9 @@
 import { useWebSocket } from '@/context/WebSocketContext';
 import {
+    useGetNotifications,
     useMarkNotificationAsRead,
-    useNotifications,
     useTestNotification,
-} from '@/queries/notificationQueries';
+} from '@/services/queries/notificationQueries';
 import { Notification } from '@/types';
 
 import React, { useEffect, useState } from 'react';
@@ -24,7 +24,7 @@ import {
 const NotificationPanel: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const { connected } = useWebSocket();
-    const { data: notifications = [], isLoading, error } = useNotifications();
+    const { data: notifications = [], isLoading, error } = useGetNotifications();
     const markAsReadMutation = useMarkNotificationAsRead();
     const testNotificationMutation = useTestNotification();
 
