@@ -28,7 +28,7 @@ export const useGetPosts = (
     order?: string
 ) => {
     return useQuery({
-        queryKey: ['posts', h, u, s, sd, ed, order],
+        queryKey: ['posts'],
         queryFn: () => postService.getPosts(h, u, s, sd, ed, order),
     });
 };

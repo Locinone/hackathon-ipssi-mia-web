@@ -1,9 +1,16 @@
-import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
+
+import axios from 'axios';
 
 import './CameraCapture.css';
 
-const CameraCapture = ({ onEmotionDetected, currentPostId }: { onEmotionDetected: (emotion: string) => void, currentPostId: string | null }) => {
+const CameraCapture = ({
+    onEmotionDetected,
+    currentPostId,
+}: {
+    onEmotionDetected: (emotion: string) => void;
+    currentPostId: string | null;
+}) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -112,9 +119,12 @@ const CameraCapture = ({ onEmotionDetected, currentPostId }: { onEmotionDetected
 
     const postImages = async (images: string[], postId: string) => {
         try {
-            const res = await axios.post('http://localhost:5050/score-batch-maximum', { image: images, postId });
-            console.log('Images successfully analyzed', res.data.result["most_prevalent_emotion"]);
-            onEmotionDetected(res.data.result["most_prevalent_emotion"]);
+            const res = await axios.post('http://localhost:5050/score-batch-maximum', {
+                image: images,
+                postId,
+            });
+            console.log('Images successfully analyzed', res.data.result['most_prevalent_emotion']);
+            onEmotionDetected(res.data.result['most_prevalent_emotion']);
         } catch (error) {
             console.error('Error posting images:', error);
         }
@@ -126,7 +136,11 @@ const CameraCapture = ({ onEmotionDetected, currentPostId }: { onEmotionDetected
             <canvas ref={canvasRef} style={{ display: 'none' }} />
             {capturedImage && (
                 <div className="captured-image-container">
-                    <img src={capturedImage || undefined} alt="Capture de caméra" className="captured-image" />
+                    <img
+                        src={capturedImage || undefined}
+                        alt="Capture de caméra"
+                        className="captured-image"
+                    />
                 </div>
             )}
         </div>

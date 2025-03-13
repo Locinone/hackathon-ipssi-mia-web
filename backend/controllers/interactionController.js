@@ -473,6 +473,13 @@ const deleteRetweet = async (req, res) => {
         const { postId } = req.params;
         const userId = req.user?.id;
 
+        // Vérification que l'utilisateur est bien authentifié
+        if (!userId) {
+            return jsonResponse(res, "Utilisateur non authentifié", 401, null);
+        }
+
+        console.log(`Tentative de suppression de retweet - User ID: ${userId}, Post ID: ${postId}`);
+
         const post = await Post.findById(postId);
         if (!post) {
             return jsonResponse(res, "Post introuvable", 404, null);
@@ -487,16 +494,29 @@ const deleteRetweet = async (req, res) => {
             return jsonResponse(res, "Retweet introuvable", 404, null);
         }
 
-        await Share.findByIdAndDelete(retweet._id);
+        console.log(`Retweet trouvé - ID: ${retweet._id}`);
 
-        // Mettre à jour le post original
+        // Supprimer le retweet
+        await Share.findByIdAndDelete(retweet._id);
+        console.log(`Retweet supprimé de la collection Share`);
+
+        // Vérifier si le tableau shares existe
+        if (!post.shares) {
+            post.shares = [];
+        }
+
+        // Mettre à jour le post original avec conversion explicite en chaîne
         post.shares = post.shares.filter(
             (rt) => rt.toString() !== retweet._id.toString()
         );
+        console.log(`Post mis à jour - ${post.shares.length} retweets restants`);
+
         await post.save();
+        console.log(`Post sauvegardé après suppression du retweet`);
 
         return jsonResponse(res, "Retweet supprimé avec succès", 200, null);
     } catch (error) {
+        console.error("Erreur lors de la suppression du retweet:", error);
         return jsonResponse(res, error.message, 500, null);
     }
 };
@@ -555,12 +575,24 @@ const deleteBookmark = async (req, res) => {
         const { postId } = req.params;
         const userId = req.user?.id;
 
+        const post = await Post.findById(postId);
+        if (!post) {
+            return jsonResponse(res, "Post introuvable", 404, null);
+        }
+
         const bookmark = await Bookmark.findOne({ post: postId, user: userId });
         if (!bookmark) {
             return jsonResponse(res, "Signet introuvable", 404, null);
         }
 
         await Bookmark.findByIdAndDelete(bookmark._id);
+
+        // Mettre à jour le post original
+        if (!post.bookmarks) {
+            post.bookmarks = [];
+        }
+        post.bookmarks = post.bookmarks.filter(b => b.toString() !== bookmark._id.toString());
+        await post.save();
 
         return jsonResponse(res, "Signet supprimé avec succès", 200, null);
     } catch (error) {

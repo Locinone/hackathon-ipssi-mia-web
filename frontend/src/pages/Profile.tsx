@@ -2,7 +2,16 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
-import { Calendar, Link as LinkIcon, MapPin } from 'lucide-react';
+import {
+    AtSign,
+    Bookmark,
+    Calendar,
+    Heart,
+    Link as LinkIcon,
+    MapPin,
+    MessageCircle,
+    Repeat,
+} from 'lucide-react';
 
 import UserBookmarks from '../components/Bookmarks/UserBookmarks';
 import { UserComments } from '../components/Comments/Comments';
@@ -264,7 +273,7 @@ const Profile = () => {
                 }
                 `}
             </style>
-            <div className="relative px-32 pt-32 profile-container">
+            <div className="relative px-4 md:px-32 pt-4 md:pt-32 profile-container">
                 <div className="flex flex-col gap-4">
                     <div className="relative flex flex-col gap-4">
                         <div className="h-48 w-full overflow-hidden">
@@ -366,17 +375,41 @@ const Profile = () => {
                 </div>
                 <div className="border-b border-gray-200 mt-4">
                     <div className="flex overflow-x-auto">
-                        {['posts', 'comments', 'likes', 'bookmarks', 'retweets'].map((tab) => (
+                        {[
+                            {
+                                name: 'posts',
+                                icons: <AtSign />,
+                            },
+                            {
+                                name: 'comments',
+                                icons: <MessageCircle />,
+                            },
+                            {
+                                name: 'likes',
+                                icons: <Heart />,
+                            },
+                            {
+                                name: 'retweets',
+                                icons: <Repeat />,
+                            },
+                            {
+                                name: 'bookmarks',
+                                icons: <Bookmark />,
+                            },
+                        ].map((tab) => (
                             <button
-                                key={tab}
-                                className={`px-4 py-3 font-medium text-sm flex-1 blackspace-nowrap ${
-                                    activeTab === tab
+                                key={tab.name}
+                                className={`px-4 py-3 font-medium text-sm w-full flex items-center justify-center ${
+                                    activeTab === tab.name
                                         ? 'text-white border-b-2 border-white'
                                         : 'text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer'
                                 }`}
-                                onClick={() => setActiveTab(tab)}
+                                onClick={() => setActiveTab(tab.name)}
                             >
-                                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                <span className="md:hidden">{tab.icons}</span>
+                                <span className="md:block hidden">
+                                    {tab.name.charAt(0).toUpperCase() + tab.name.slice(1)}
+                                </span>
                             </button>
                         ))}
                     </div>

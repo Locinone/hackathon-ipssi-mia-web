@@ -1,6 +1,4 @@
-import { useAuthStore } from '@/store/authStore';
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
@@ -10,84 +8,6 @@ import { api } from '../../services/api';
 import { useGetUserRetweets } from '../../services/queries/interactionQueries';
 import { useUserProfile } from '../../services/queries/useUserProfile';
 import Loader from '../ui/Loader';
-
-// Définition d'un type local pour les posts mockés qui correspond à la structure attendue
-interface MockRetweet {
-    _id: string;
-    content?: string;
-    post: {
-        _id: string;
-        content: string;
-        author: {
-            _id: string;
-            name: string;
-            username: string;
-            image: string;
-        };
-        createdAt?: string;
-        likes?: any[];
-        comments?: any[];
-    };
-    user: {
-        _id: string;
-        name: string;
-        username: string;
-        image: string;
-    };
-    createdAt: string;
-}
-
-// Données mockées pour visualiser le rendu
-const mockRetweets: MockRetweet[] = [
-    {
-        _id: '1',
-        content: 'Ce post est vraiment intéressant !',
-        post: {
-            _id: '101',
-            content:
-                "Ceci est un post retweeté avec un contenu assez long pour voir comment le texte s'affiche sur plusieurs lignes. Qu'en pensez-vous ?",
-            author: {
-                _id: '201',
-                name: 'Barack Obama',
-                username: 'BarackObama',
-                image: '',
-            },
-            createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-            likes: Array(14),
-            comments: Array(3),
-        },
-        user: {
-            _id: '301',
-            name: 'John Doe',
-            username: 'johndoe',
-            image: '',
-        },
-        createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-    },
-    {
-        _id: '2',
-        post: {
-            _id: '102',
-            content: 'Un autre post retweeté avec un point de vue intéressant !',
-            author: {
-                _id: '202',
-                name: 'Elon Musk',
-                username: 'elonmusk',
-                image: '',
-            },
-            createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-            likes: Array(42),
-            comments: Array(7),
-        },
-        user: {
-            _id: '302',
-            name: 'Jane Smith',
-            username: 'janesmith',
-            image: '',
-        },
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    },
-];
 
 interface RetweetCardProps {
     retweet: any;
@@ -224,7 +144,6 @@ const RetweetCard: React.FC<RetweetCardProps> = ({ retweet }) => {
 
 const UserRetweets: React.FC = () => {
     const { username } = useParams();
-    const { user: currentUser } = useAuthStore();
     const { data: userData } = useUserProfile(username);
     const {
         data: userRetweets,
@@ -234,68 +153,12 @@ const UserRetweets: React.FC = () => {
         isError,
     } = useGetUserRetweets(userData?._id);
 
-    // État pour contrôler l'affichage des données mockées
-    const [showMockData, setShowMockData] = useState(false);
-
     useEffect(() => {
         if (userRetweets) {
             console.log('Retweets récupérés:', userRetweets);
             console.log('Nombre de retweets:', userRetweets.length);
-
-            // Si nous avons des données réelles, désactiver les données mockées
-            if (userRetweets.length > 0) {
-                setShowMockData(false);
-                console.log('Affichage des retweets réels');
-            } else {
-                console.log('Aucun retweet trouvé');
-            }
         }
     }, [userRetweets]);
-
-    // Afficher les données mockées pour visualisation ou si aucun retweet n'est trouvé
-    if (showMockData || (userRetweets && userRetweets.length === 0)) {
-        return (
-            <div className="space-y-4">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-white text-lg font-semibold">
-                        Retweets {showMockData ? '(Exemple)' : ''}
-                    </h2>
-                    {currentUser &&
-                        userData &&
-                        currentUser._id === userData._id &&
-                        showMockData && (
-                            <button
-                                className="text-xs text-gray-400 hover:text-blue-500"
-                                onClick={() => {
-                                    setShowMockData(false);
-                                    refetch();
-                                }}
-                            >
-                                Charger mes retweets
-                            </button>
-                        )}
-                </div>
-                {showMockData ? (
-                    mockRetweets.map((retweet) => (
-                        <RetweetCard key={retweet._id} retweet={retweet} />
-                    ))
-                ) : (
-                    <div className="text-white p-4 text-center">
-                        <p className="text-xl font-semibold">Aucun retweet pour le moment.</p>
-                        <p className="text-gray-500 mt-2">
-                            Les posts que vous retweetez apparaîtront ici.
-                        </p>
-                        <button
-                            className="mt-6 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
-                            onClick={() => setShowMockData(true)}
-                        >
-                            Voir à quoi ressemblent les retweets
-                        </button>
-                    </div>
-                )}
-            </div>
-        );
-    }
 
     if (isLoading) {
         return (
@@ -314,27 +177,29 @@ const UserRetweets: React.FC = () => {
                 <p className="text-red-500 mt-2">
                     {error instanceof Error ? error.message : 'Erreur inconnue'}
                 </p>
-                <div className="flex justify-center mt-4 space-x-4">
+                <div className="flex justify-center mt-4">
                     <button
                         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                         onClick={() => {
                             toast.info('Tentative de récupération des retweets...');
                             refetch().catch((err) => {
                                 console.error('Nouvelle erreur lors du refetch:', err);
-                                toast.error('Échec de la récupération. Affichage des exemples.');
-                                setShowMockData(true);
+                                toast.error('Échec de la récupération.');
                             });
                         }}
                     >
                         Réessayer
                     </button>
-                    <button
-                        className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
-                        onClick={() => setShowMockData(true)}
-                    >
-                        Afficher des exemples
-                    </button>
                 </div>
+            </div>
+        );
+    }
+
+    if (!userRetweets || userRetweets.length === 0) {
+        return (
+            <div className="text-white p-4 text-center">
+                <p className="text-xl font-semibold">Aucun retweet pour le moment.</p>
+                <p className="text-gray-500 mt-2">Les posts que vous retweetez apparaîtront ici.</p>
             </div>
         );
     }
@@ -344,7 +209,7 @@ const UserRetweets: React.FC = () => {
             <h2 className="text-white text-lg font-semibold mb-4">
                 Retweets ({userRetweets.length})
             </h2>
-            {userRetweets.map((retweet) => (
+            {userRetweets.map((retweet: any) => (
                 <RetweetCard key={retweet._id} retweet={retweet} />
             ))}
         </div>

@@ -9,7 +9,6 @@ const Trending = () => {
     const navigate = useNavigate();
 
     const handleTrendingClick = (name: string) => {
-        alert(name);
         navigate(`/posts?h=${encodeURIComponent(name.replace('#', ''))}`);
     };
 
