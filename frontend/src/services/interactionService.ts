@@ -161,7 +161,7 @@ class InteractionService {
         try {
             console.log(`Service - Suivre l'utilisateur ${userId}`);
             const response = await api.fetchRequest(
-                `${this.apiUrl}/follow/${userId}`,
+                `${this.apiUrl}/followers/${userId}/follow`,
                 'POST',
                 null,
                 true
@@ -188,7 +188,7 @@ class InteractionService {
         try {
             console.log(`Service - Ne plus suivre l'utilisateur ${userId}`);
             const response = await api.fetchRequest(
-                `${this.apiUrl}/unfollow/${userId}`,
+                `${this.apiUrl}/followers/${userId}/unfollow`,
                 'DELETE',
                 null,
                 true
