@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import Navbar from './components/Navbar/Navbar';
 import Loader from './components/ui/Loader';
 import { WebSocketProvider } from './context/WebSocketContext';
+// Importez les nouvelles pages
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Profile from './pages/Profile';

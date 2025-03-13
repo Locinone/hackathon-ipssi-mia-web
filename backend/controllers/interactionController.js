@@ -627,9 +627,24 @@ const getUserBookmarks = async (req, res) => {
 
 // Followers
 const followUser = async (req, res) => {
+    const io = req.app.get("io");
+    const notificationManager = new NotificationManager(io);
+
     try {
         const { userId } = req.params;
         const followerId = req.user?.id;
+
+        // Vérification que l'utilisateur est bien authentifié
+        if (!followerId) {
+            return jsonResponse(res, "Utilisateur non authentifié", 401, null);
+        }
+
+        console.log(`Demande de follow: ${followerId} veut suivre ${userId}`);
+
+        // Vérifier que l'utilisateur ne tente pas de se suivre lui-même
+        if (userId === followerId) {
+            return jsonResponse(res, "Vous ne pouvez pas vous suivre vous-même", 400, null);
+        }
 
         const user = await User.findById(userId);
         if (!user) {
@@ -641,26 +656,67 @@ const followUser = async (req, res) => {
             return jsonResponse(res, "Utilisateur introuvable", 404, null);
         }
 
+        // Vérifier si l'utilisateur suit déjà la cible
         if (follower.following.includes(userId)) {
             return jsonResponse(res, "Vous suivez déjà cet utilisateur", 400, null);
         }
 
+        // Ajouter la relation d'abonnement
         follower.following.push(userId);
         user.followers.push(followerId);
+
         await follower.save();
         await user.save();
 
-        return jsonResponse(res, "Utilisateur suivi avec succès", 201, follower);
+        console.log(`${follower.username} suit maintenant ${user.username}`);
+
+        // Envoyer une notification à l'utilisateur suivi
+        await notificationManager.sendNotification({
+            sender: followerId,
+            receiver: userId,
+            type: "follow",
+            message: `${follower.username} vous suit désormais`,
+        });
+
+        return jsonResponse(res, "Utilisateur suivi avec succès", 201, {
+            follower: {
+                _id: follower._id,
+                username: follower.username,
+                name: follower.name,
+                image: follower.image
+            },
+            following: {
+                _id: user._id,
+                username: user.username,
+                name: user.name,
+                image: user.image
+            }
+        });
     } catch (error) {
+        console.error("Erreur lors du follow:", error);
         return jsonResponse(res, error.message, 500, null);
     }
 };
 
 const unfollowUser = async (req, res) => {
+    const io = req.app.get("io");
+    const notificationManager = new NotificationManager(io);
+
     try {
         const { userId } = req.params;
-        const followerId = req.user?.id.toString();
+        const followerId = req.user?.id;
 
+        // Vérification que l'utilisateur est bien authentifié
+        if (!followerId) {
+            return jsonResponse(res, "Utilisateur non authentifié", 401, null);
+        }
+
+        console.log(`Demande d'unfollow: ${followerId} ne veut plus suivre ${userId}`);
+
+        // Vérifier que l'utilisateur ne tente pas de se désabonner de lui-même
+        if (userId === followerId) {
+            return jsonResponse(res, "Opération invalide", 400, null);
+        }
 
         const user = await User.findById(userId);
         if (!user) {
@@ -672,19 +728,42 @@ const unfollowUser = async (req, res) => {
             return jsonResponse(res, "Utilisateur introuvable", 404, null);
         }
 
-        console.log(follower.following, userId);
-        console.log(follower.followers, userId);
+        // Vérifier si l'utilisateur suit bien la cible
         if (!follower.following.includes(userId)) {
             return jsonResponse(res, "Vous ne suivez pas cet utilisateur", 400, null);
         }
 
+        // Supprimer la relation d'abonnement
         follower.following = follower.following.filter((id) => id.toString() !== userId);
         user.followers = user.followers.filter((id) => id.toString() !== followerId);
+
         await follower.save();
         await user.save();
 
-        return jsonResponse(res, "Utilisateur non suivi avec succès", 200, null);
+        console.log(`${follower.username} ne suit plus ${user.username}`);
+
+        // Envoyer une notification à l'utilisateur qui n'est plus suivi
+        // Note: Certaines applications choisissent de ne pas notifier les unfollows
+        // Si vous préférez ne pas envoyer de notification, vous pouvez commenter ce bloc
+        await notificationManager.sendNotification({
+            sender: followerId,
+            receiver: userId,
+            type: "unfollow",
+            message: `${follower.username} ne vous suit plus`,
+        });
+
+        return jsonResponse(res, "Utilisateur non suivi avec succès", 200, {
+            follower: {
+                _id: follower._id,
+                username: follower.username
+            },
+            unfollowed: {
+                _id: user._id,
+                username: user.username
+            }
+        });
     } catch (error) {
+        console.error("Erreur lors de l'unfollow:", error);
         return jsonResponse(res, error.message, 500, null);
     }
 };

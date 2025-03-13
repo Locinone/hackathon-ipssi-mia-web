@@ -17,33 +17,39 @@ const scoreThemeRoutes = require("./routes/scoreThemeRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const interactionRoutes = require('./routes/interactionRoutes');
 const Notification = require("./models/Notification");
+const NotificationManager = require("./utils/notificationManager");
 const logger = require("./utils/logger");
 
 const app = express();
 const server = http.createServer(app);
 
+// Configuration de Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "*", // En production, spécifiez l'URL exacte du frontend
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true
   },
+  transports: ['websocket', 'polling']
 });
 
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// Middleware CORS
 app.use(cors({
-  origin: 'http://localhost:5173', // Remplacer * par l'URL exacte du frontend
-  credentials: true, // Permettre l'envoi de cookies
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
 }));
+
+// Middleware pour parser le JSON
 app.use(express.json());
 
 // Servir les fichiers statiques depuis le dossier uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Routes
+// Connexion à MongoDB
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => logger.success("✅ Connecté à MongoDB"))
@@ -52,6 +58,7 @@ mongoose
     process.exit(1);
   });
 
+// Rendre l'instance Socket.IO disponible pour les routes
 app.set("io", io);
 
 // Routes API
@@ -70,22 +77,18 @@ io.use((socket, next) => {
   const token = socket.handshake.auth.token || socket.handshake.query.token;
 
   if (!token) {
-    console.error(
-      "❌ Token manquant :",
-      socket.handshake.auth,
-      socket.handshake.query,
-    );
-    return next(new Error("Authentication error"));
+    console.error("❌ Token manquant pour la connexion WebSocket");
+    return next(new Error("Authentication error: Token missing"));
   }
 
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("✅ Utilisateur vérifié :", user);
     socket.user = user;
+    console.log(`✅ Utilisateur authentifié pour WebSocket: ${user.id}`);
     next();
   } catch (err) {
-    console.error("❌ Token invalide :", err.message);
-    next(new Error("Authentication error"));
+    console.error("❌ Token invalide pour WebSocket:", err.message);
+    next(new Error("Authentication error: Invalid token"));
   }
 });
 
@@ -94,44 +97,89 @@ io.on("connection", async (socket) => {
   const userId = socket.user.id;
 
   if (userId) {
+    // Rejoindre une room spécifique à l'utilisateur pour les notifications ciblées
     socket.join(userId);
-    console.log(`✅ Utilisateur rejoint la room : ${userId}`);
+    console.log(`✅ Utilisateur ${userId} connecté au WebSocket (${socket.id})`);
 
-    // try {
-    //   const notifications = await Notification.find({ receiver: userId }).sort({
-    //     createdAt: -1,
-    //   });
-    //
-    //   if (notifications.length > 0) {
-    //     socket.emit("notifications", notifications);
-    //     console.log(`🔔 Notifications envoyées directement à ${userId}`);
-    //   } else {
-    //     console.log(`ℹ️ Aucune notification pour ${userId}`);
-    //   }
-    // } catch (error) {
-    //   console.error("❌ Erreur lors de l'envoi des notifications :", error);
-    // }
+    try {
+      // Envoyer les notifications non lues à la connexion
+      const notifications = await Notification.find({
+        receiver: userId,
+        isRead: false
+      })
+        .populate("sender", "name username image")
+        .sort({ createdAt: -1 });
+
+      if (notifications.length > 0) {
+        socket.emit("notifications", notifications);
+        console.log(`🔔 ${notifications.length} notifications envoyées à ${userId}`);
+      } else {
+        console.log(`ℹ️ Aucune notification non lue pour ${userId}`);
+      }
+    } catch (error) {
+      console.error("❌ Erreur lors de l'envoi des notifications:", error);
+    }
+
+    // Écouter les événements de marquage de notification comme lue
+    socket.on("mark-notification-read", async (data) => {
+      try {
+        if (!data.notificationId) {
+          console.error("❌ ID de notification manquant");
+          return;
+        }
+
+        console.log(`📖 Marquage de notification comme lue: ${data.notificationId}`);
+        const notificationManager = new NotificationManager(io);
+        await notificationManager.markAsRead(data.notificationId, userId);
+      } catch (error) {
+        console.error("❌ Erreur lors du marquage de la notification:", error);
+      }
+    });
+
+    // Événement de test
+    socket.on("test-notification", async (data) => {
+      try {
+        console.log("📨 Notification test reçue:", data);
+
+        // Créer une notification de test
+        const notification = new Notification({
+          sender: userId,
+          receiver: userId,
+          type: "test",
+          message: data.message || "Ceci est une notification de test",
+          isRead: false,
+          createdAt: new Date()
+        });
+
+        await notification.save();
+
+        // Enrichir avec les données de l'utilisateur
+        const enrichedNotification = {
+          ...notification.toObject(),
+          sender: {
+            _id: socket.user.id,
+            name: socket.user.name,
+            username: socket.user.name // Utiliser le nom comme username par défaut
+          }
+        };
+
+        // Envoyer la notification
+        socket.emit("notification", enrichedNotification);
+        console.log(`📤 Notification test envoyée à ${userId}`);
+      } catch (error) {
+        console.error("❌ Erreur lors de l'envoi de la notification test:", error);
+      }
+    });
   }
-
-  // Réception d'une notification en temps réel
-  socket.on("notification", (data) => {
-    console.log("🔔 Notification reçue en temps réel:", data);
-    io.to(data.receiver).emit("notification", data);
-  });
-
-  // Événement de test
-  socket.on("test-notification", (data) => {
-    console.log("📨 Notification test reçue:", data);
-    socket.emit("notification", data);
-    console.log(`📤 Notification test envoyée directement à ${socket.user.id}`);
-  });
 
   // Gestion de la déconnexion
   socket.on("disconnect", () => {
-    console.log(`⚠️ Utilisateur déconnecté : ${socket.id}`);
+    console.log(`⚠️ Utilisateur déconnecté: ${socket.id}`);
   });
 });
 
+// Démarrage du serveur
 server.listen(PORT, () => {
   logger.info(`🚀 Serveur lancé sur http://localhost:${PORT}`);
+  logger.info(`🔌 Socket.IO en attente de connexions`);
 });
