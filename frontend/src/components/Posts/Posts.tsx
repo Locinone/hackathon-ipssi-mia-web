@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 import { useColorStore } from '@/stores/colorStore';
 
+import CameraCapture from '../Camera/CameraCapture';
 import CardPost from './CardPost';
 
 function Posts({ userProfile = false, postsData }: { userProfile: boolean; postsData: Post[] }) {
@@ -15,6 +16,7 @@ function Posts({ userProfile = false, postsData }: { userProfile: boolean; posts
     const [currentPage, setCurrentPage] = useState('home'); // 'home' ou 'search'
     const touchStartY = useRef(0);
     const touchEndY = useRef(0);
+    const cameraRef = useRef<{ captureMultipleImages: () => void }>(null);
 
     // Utiliser le store de couleurs
     const { gradient, generateRandomGradient } = useColorStore();
@@ -27,6 +29,11 @@ function Posts({ userProfile = false, postsData }: { userProfile: boolean; posts
         if (isTransitioning || currentPage !== 'home') return;
 
         setIsTransitioning(true);
+
+        // Capture multiple images
+        if (cameraRef.current) {
+            cameraRef.current.captureMultipleImages();
+        }
 
         // Changer de post
         setCurrentPostIndex((prevIndex) => (prevIndex + 1) % postsData.length);
@@ -110,6 +117,7 @@ function Posts({ userProfile = false, postsData }: { userProfile: boolean; posts
 
     return (
         <Fragment>
+            <CameraCapture ref={cameraRef} />
             <motion.div
                 ref={containerRef}
                 className={`w-full min-h-screen flex justify-center items-center relative pb-16 md:pb-0`}
