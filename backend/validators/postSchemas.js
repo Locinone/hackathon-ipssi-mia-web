@@ -12,4 +12,11 @@ const postSchema = z.object({
     ]).optional(),
 });
 
-module.exports = { postSchema };
+const commentSchema = z.object({
+    content: z
+        .string()
+        .min(1, { message: 'Le contenu est requis' })
+        .max(140, { message: 'Le contenu ne doit pas dépasser 140 caractères' }),
+});
+
+module.exports = { postSchema, commentSchema };

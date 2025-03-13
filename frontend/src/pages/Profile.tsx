@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { Calendar, Link as LinkIcon, MapPin } from 'lucide-react';
 
 import UserBookmarks from '../components/Bookmarks/UserBookmarks';
-import UserComments from '../components/Comments/Comments';
+import { UserComments } from '../components/Comments/Comments';
 import UserLikes from '../components/Likes/UserLikes';
 import Posts from '../components/Posts/Posts';
 import ProfileEditForm from '../components/ProfileEditForm';

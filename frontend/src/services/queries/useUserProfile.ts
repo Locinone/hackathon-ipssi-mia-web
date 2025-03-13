@@ -7,8 +7,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { userService } from '../userService';
 
 export const useUserProfile = (username: string | undefined) => {
-    const queryClient = useQueryClient();
-
     return useQuery<User>({
         queryKey: ['userProfile', username],
         queryFn: async () => {

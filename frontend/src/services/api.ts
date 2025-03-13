@@ -6,7 +6,7 @@ class Interceptor {
     private url: string;
 
     constructor() {
-        this.url = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:3000';
+        this.url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
         console.log('API Base URL:', this.url);
     }
 
@@ -29,24 +29,6 @@ class Interceptor {
         }
 
         return headers;
-    }
-
-    // Gestion des erreurs 401 et retry
-    private async handleUnauthorizedRequest(
-        response: Response,
-        retryRequest: () => Promise<Response>
-    ): Promise<Response> {
-        if (response.status === 401) {
-            const refreshToken = Cookies.get('refreshToken');
-            if (refreshToken) {
-                const newToken = await this.getNewAccessToken(refreshToken);
-
-                if (newToken && newToken.accessToken) {
-                    return retryRequest();
-                }
-            }
-        }
-        return response;
     }
 
     public async fetchMultipartRequest(
@@ -101,8 +83,8 @@ class Interceptor {
         endpoint: string,
         method: string = 'GET',
         body: any = null,
-        customHeaders: Record<string, string> = {}
-    ): Promise<ApiResponse<T>> {
+        includeAuth: boolean = false
+    ): Promise<any> {
         try {
             const url = `${this.url}${endpoint}`;
             console.log(`API - Requête ${method} vers: ${url}`);
@@ -115,11 +97,10 @@ class Interceptor {
             // Préparer les en-têtes avec le token d'authentification
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
-                ...customHeaders,
             };
 
             // Ajouter le token d'authentification s'il existe
-            if (token) {
+            if (token && includeAuth) {
                 headers['Authorization'] = `Bearer ${token}`;
                 console.log(
                     "Token d'authentification inclus dans la requête:",
@@ -222,19 +203,19 @@ class Interceptor {
 
     // Récupération d'un nouveau token via le refresh token
     public async getNewAccessToken(refreshToken: string): Promise<AuthResponse | null> {
-        const response = await this.fetchRequest('/api/auth/refresh', 'POST', {
+        const response = await this.fetchRequest<AuthResponse>('/api/auth/refresh', 'POST', {
             token: refreshToken,
         });
 
-        if (response.token) {
-            Cookies.set('accessToken', response.token, { expires: 1 }); // expire dans 1 jour
+        if (response.data && response.data.accessToken) {
+            Cookies.set('accessToken', response.data.accessToken, { expires: 1 }); // expire dans 1 jour
         }
 
-        if (response.refreshToken) {
-            Cookies.set('refreshToken', response.refreshToken, { expires: 30 }); // expire dans 30 jours
+        if (response.data && response.data.refreshToken) {
+            Cookies.set('refreshToken', response.data.refreshToken, { expires: 30 }); // expire dans 30 jours
         }
 
-        return response || null;
+        return response.data || null;
     }
 }
 

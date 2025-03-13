@@ -92,13 +92,46 @@ const getCommentsByPost = async (req, res) => {
   const { postId } = req.params;
 
   try {
-    const comments = await Comment.find({ post: postId }).populate(
-      "author",
-      "username email",
-    );
-    res.status(200).json(comments);
+    // Récupérer les commentaires principaux (sans parent)
+    const comments = await Comment.find({
+      post: postId,
+      parentComment: { $exists: false }
+    })
+      .populate("author", "username email name image")
+      .sort({ createdAt: -1 });
+
+    // Vérifier que comments est bien un tableau avant d'utiliser map
+    if (Array.isArray(comments)) {
+      const commentsWithReplies = await Promise.all(comments.map(async (comment) => {
+        // Récupérer uniquement les IDs des réponses
+        const replies = await Comment.find({
+          parentComment: comment._id
+        }).select('_id');
+
+        // Convertir le commentaire en objet et ajouter les IDs des réponses
+        const commentObj = comment.toObject();
+        commentObj.replies = replies.map(reply => reply._id);
+        return commentObj;
+      }));
+
+      res.status(200).json({
+        success: true,
+        message: "Commentaires récupérés avec succès",
+        data: commentsWithReplies
+      });
+    } else {
+      res.status(200).json({
+        success: true,
+        message: "Commentaires récupérés avec succès",
+        data: comments
+      });
+    }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      data: null
+    });
   }
 };
 
@@ -128,4 +161,105 @@ const getCommentsByUser = async (req, res) => {
   }
 };
 
-module.exports = { createComment, deleteComment, getCommentsByPost, getCommentsByUser };
+// Ajouter cette nouvelle fonction pour créer une réponse à un commentaire
+const replyToComment = async (req, res) => {
+  const io = req.app.get("io");
+  const notificationManager = new NotificationManager(io);
+
+  const userId = req.user.id;
+  const { content, commentId } = req.body;
+
+  try {
+    if (!content || !commentId) {
+      return res.status(400).json({ message: "Contenu et ID du commentaire requis" });
+    }
+
+    const parentComment = await Comment.findById(commentId);
+
+    if (!parentComment) {
+      return res.status(404).json({ message: "Commentaire parent introuvable" });
+    }
+
+    const reply = new Comment({
+      content,
+      author: userId,
+      parentComment: commentId
+    });
+
+    await reply.save();
+
+    // Envoyer une notification à l'auteur du commentaire parent
+    await notificationManager.sendNotification({
+      sender: userId,
+      receiver: parentComment.author,
+      type: "reply",
+      post: parentComment.post,
+      message: "Un utilisateur a répondu à votre commentaire",
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Réponse ajoutée avec succès",
+      data: reply
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      data: null
+    });
+  }
+};
+
+// Ajouter cette fonction pour récupérer les réponses à un commentaire
+const getRepliesByComment = async (req, res) => {
+  const { commentId } = req.params;
+
+  try {
+    const replies = await Comment.find({
+      parentComment: commentId,
+    }).populate("author", "username email name image")
+      .sort({ createdAt: -1 });
+
+    console.log(replies);
+
+    if (Array.isArray(replies)) {
+      const repliesWithReplies = await Promise.all(replies.map(async (reply) => {
+        const replies = await Comment.find({
+          parentComment: reply._id
+        }).select('_id');
+
+        const replyObj = reply.toObject();
+        replyObj.replies = replies.map(reply => reply._id);
+        return replyObj;
+      }));
+
+      return res.status(200).json({
+        success: true,
+        message: "Réponses récupérées avec succès",
+        data: repliesWithReplies
+      });
+    } else {
+      return res.status(200).json({
+        success: true,
+        message: "Réponses récupérées avec succès",
+        data: replies
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+      data: null
+    });
+  }
+};
+
+module.exports = {
+  createComment,
+  deleteComment,
+  getCommentsByPost,
+  getCommentsByUser,
+  replyToComment,
+  getRepliesByComment
+};
