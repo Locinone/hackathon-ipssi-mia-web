@@ -4,6 +4,7 @@ import { Notification } from '@/types';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 
+import Cookies from 'js-cookie';
 import { Socket, io } from 'socket.io-client';
 
 // Type pour le contexte
@@ -13,6 +14,7 @@ interface WebSocketContextType {
     notifications: Notification[];
     sendNotification: (notification: Partial<Notification>) => void;
     markNotificationAsRead: (notificationId: string) => void;
+    deleteNotification: (notificationId: string) => void;
 }
 
 // Valeur par défaut du contexte
@@ -22,6 +24,7 @@ const defaultContext: WebSocketContextType = {
     notifications: [],
     sendNotification: () => {},
     markNotificationAsRead: () => {},
+    deleteNotification: () => {},
 };
 
 // Création du contexte
@@ -35,11 +38,17 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const [socket, setSocket] = useState<Socket | null>(null);
     const [connected, setConnected] = useState(false);
     const [notifications, setNotifications] = useState<Notification[]>([]);
-    const { token } = useAuthStore();
+    const { user } = useAuthStore();
+
+    // Récupérer le token depuis les cookies
+    const token = Cookies.get('accessToken');
 
     // Initialisation de la connexion WebSocket
     useEffect(() => {
-        if (!token) return;
+        if (!token) {
+            console.log('Pas de token disponible, impossible de se connecter au WebSocket');
+            return;
+        }
 
         console.log('Initialisation de la connexion WebSocket...');
 
@@ -87,6 +96,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             console.log('📖 Notification marquée comme lue:', data);
             setNotifications((prev) =>
                 prev.map((notif) => (notif._id === data._id ? { ...notif, isRead: true } : notif))
+            );
+        });
+
+        // Écouter l'événement de notification supprimée
+        socketInstance.on('notification-deleted', (data: { _id: string }) => {
+            console.log('🗑️ Notification supprimée reçue:', data);
+            setNotifications((prevNotifications) =>
+                prevNotifications.filter((notif) => notif._id !== data._id)
             );
         });
 
@@ -147,6 +164,21 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
     };
 
+    // Fonction pour supprimer une notification
+    const deleteNotification = (notificationId: string) => {
+        if (socket && connected) {
+            console.log('WebSocket - Suppression de la notification:', notificationId);
+
+            // Mettre à jour l'état local immédiatement pour une meilleure expérience utilisateur
+            setNotifications((prev) => prev.filter((notif) => notif._id !== notificationId));
+
+            // Émettre l'événement de suppression au serveur
+            socket.emit('delete-notification', { notificationId });
+        } else {
+            console.error('WebSocket - Impossible de supprimer la notification: non connecté');
+        }
+    };
+
     // Valeur du contexte
     const contextValue: WebSocketContextType = {
         socket,
@@ -154,6 +186,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         notifications,
         sendNotification,
         markNotificationAsRead,
+        deleteNotification,
     };
 
     return <WebSocketContext.Provider value={contextValue}>{children}</WebSocketContext.Provider>;

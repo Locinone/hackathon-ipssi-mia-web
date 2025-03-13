@@ -10,6 +10,7 @@ interface ProfileEditFormProps {
         biography: string;
         location: string;
         link: string;
+        acceptNotification?: boolean;
     };
     onSubmit: (formData: any) => void;
     isUpdating?: boolean;
@@ -35,6 +36,13 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
         setFormData((prev) => ({
             ...prev,
             [name]: value,
+        }));
+    };
+
+    const handleToggleChange = (name: 'acceptNotification') => {
+        setFormData((prev) => ({
+            ...prev,
+            [name]: !prev[name],
         }));
     };
 
@@ -168,6 +176,27 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                         className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
                         placeholder="exemple.com"
                     />
+                </div>
+
+                <div className="flex items-center justify-between py-2 px-1">
+                    <label
+                        htmlFor="acceptNotification"
+                        className="text-sm font-medium text-gray-300"
+                    >
+                        Accepter les notifications
+                    </label>
+                    <div
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer ${
+                            formData.acceptNotification ? 'bg-blue-600' : 'bg-gray-700'
+                        }`}
+                        onClick={() => handleToggleChange('acceptNotification')}
+                    >
+                        <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                formData.acceptNotification ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                        />
+                    </div>
                 </div>
             </div>
 

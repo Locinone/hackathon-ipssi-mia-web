@@ -1,7 +1,7 @@
 import { useFollowUser, useUnfollowUser } from '@/services/queries/interactionQueries';
 import { User } from '@/types';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 
 import { motion } from 'framer-motion';
@@ -27,6 +27,16 @@ const FollowButton: React.FC<FollowButtonProps> = ({
     const unfollowMutation = useUnfollowUser();
     const isPending = followMutation.isPending || unfollowMutation.isPending;
 
+    // Mettre à jour l'état local si la prop change
+    useEffect(() => {
+        if (initialIsFollowing !== isFollowing) {
+            console.log(
+                `FollowButton: Mise à jour de l'état isFollowing de ${isFollowing} à ${initialIsFollowing}`
+            );
+            setIsFollowing(initialIsFollowing);
+        }
+    }, [initialIsFollowing]);
+
     const handleFollowToggle = async () => {
         if (isPending) return;
 
@@ -36,34 +46,59 @@ const FollowButton: React.FC<FollowButtonProps> = ({
                 setIsFollowing(false);
                 if (onFollowStatusChange) onFollowStatusChange(false);
 
+                console.log(`Désabonnement de l'utilisateur: ${user.username} (${user._id})`);
                 const loadingToast = toast.loading('Désabonnement en cours...');
-                await unfollowMutation.mutateAsync(user._id);
-                toast.dismiss(loadingToast);
-                toast.success(`Vous ne suivez plus ${user.username}`);
+
+                await unfollowMutation.mutateAsync(user._id, {
+                    onSuccess: () => {
+                        console.log(`Désabonnement réussi pour: ${user.username}`);
+                        toast.dismiss(loadingToast);
+                        toast.success(`Vous ne suivez plus ${user.username}`);
+                    },
+                    onError: (error) => {
+                        console.error(`Erreur lors du désabonnement de ${user.username}:`, error);
+                        // Revenir à l'état précédent en cas d'erreur
+                        setIsFollowing(true);
+                        if (onFollowStatusChange) onFollowStatusChange(true);
+
+                        toast.dismiss(loadingToast);
+                        toast.error(`Échec du désabonnement: ${error.message}`);
+                    },
+                });
             } else {
                 // Abonnement - Mettre à jour l'état local immédiatement
                 setIsFollowing(true);
                 if (onFollowStatusChange) onFollowStatusChange(true);
 
+                console.log(`Abonnement à l'utilisateur: ${user.username} (${user._id})`);
                 const loadingToast = toast.loading('Abonnement en cours...');
-                await followMutation.mutateAsync(user._id);
-                toast.dismiss(loadingToast);
-                toast.success(`Vous suivez maintenant ${user.username}`);
+
+                await followMutation.mutateAsync(user._id, {
+                    onSuccess: () => {
+                        console.log(`Abonnement réussi pour: ${user.username}`);
+                        toast.dismiss(loadingToast);
+                        toast.success(`Vous suivez maintenant ${user.username}`);
+                    },
+                    onError: (error) => {
+                        console.error(`Erreur lors de l'abonnement à ${user.username}:`, error);
+                        // Revenir à l'état précédent en cas d'erreur
+                        setIsFollowing(false);
+                        if (onFollowStatusChange) onFollowStatusChange(false);
+
+                        toast.dismiss(loadingToast);
+                        toast.error(`Échec de l'abonnement: ${error.message}`);
+                    },
+                });
             }
         } catch (error) {
             // En cas d'erreur, revenir à l'état précédent
+            console.error('Erreur générale lors de la modification du statut de suivi:', error);
             setIsFollowing(!isFollowing);
             if (onFollowStatusChange) onFollowStatusChange(!isFollowing);
 
-            console.error('Erreur lors de la modification du statut de suivi:', error);
             toast.error('Une erreur est survenue. Veuillez réessayer.');
         }
     };
-
-    // Mettre à jour l'état local si la prop change
-    React.useEffect(() => {
-        setIsFollowing(initialIsFollowing);
-    }, [initialIsFollowing]);
 
     return (
         <motion.button
