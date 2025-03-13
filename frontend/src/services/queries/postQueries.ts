@@ -19,10 +19,24 @@ export const useCreatePost = () => {
     });
 };
 
-export const useGetPosts = () => {
+export const useGetPosts = (
+    h?: string,
+    u?: string,
+    s?: string,
+    sd?: string,
+    ed?: string,
+    order?: string
+) => {
     return useQuery({
-        queryKey: ['posts'],
-        queryFn: () => postService.getPosts(),
+        queryKey: ['posts', h, u, s, sd, ed, order],
+        queryFn: () => postService.getPosts(h, u, s, sd, ed, order),
+    });
+};
+
+export const useGetPostById = (id: string) => {
+    return useQuery({
+        queryKey: ['post', id],
+        queryFn: () => postService.getPostById(id),
     });
 };
 
