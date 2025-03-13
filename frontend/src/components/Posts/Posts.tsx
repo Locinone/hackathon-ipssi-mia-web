@@ -6,6 +6,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 import { useColorStore } from '@/stores/colorStore';
 
+import { useCreateBookmark, useDislikePost, useLikePost } from '@/services/queries/interactionQueries';
+import CameraCapture from '../Camera/CameraCapture';
 import CardPost from './CardPost';
 
 function Posts({ userProfile = false, postsData }: { userProfile: boolean; postsData: Post[] }) {
@@ -15,6 +17,12 @@ function Posts({ userProfile = false, postsData }: { userProfile: boolean; posts
     const [currentPage, setCurrentPage] = useState('home'); // 'home' ou 'search'
     const touchStartY = useRef(0);
     const touchEndY = useRef(0);
+    const cameraRef = useRef<{ captureMultipleImages: () => void }>(null);
+
+    const {mutate: autoLikePost} = useLikePost()
+    const {mutate: autoDislikePost} = useDislikePost()
+    const {mutate: autoBookmarkPost} = useCreateBookmark()
+    // const {mutate: autoCommentPost} = useCommentPost()
 
     // Utiliser le store de couleurs
     const { gradient, generateRandomGradient } = useColorStore();
@@ -23,10 +31,42 @@ function Posts({ userProfile = false, postsData }: { userProfile: boolean; posts
         generateRandomGradient();
     }, [generateRandomGradient]);
 
+
+    const handleEmotionDetected = async (emotion: string) => {
+        const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+        const currentPost = postsData[currentPostIndex];
+        if (emotion === 'neutral') {
+            await sleep(1500);
+            goToNextPost();
+        }
+        if (emotion === 'surprise') {
+            autoBookmarkPost(currentPost._id!);
+            await sleep(1500);
+            return;
+        }
+        if (emotion === 'happy') {
+            await sleep(1500);
+            autoLikePost(currentPost._id!);
+            currentPost.isLiked = true;
+            return;
+        } 
+        if (emotion === 'angry' || emotion === 'sad' || emotion === 'disguste' || emotion === 'fear') {
+            await sleep(1500);
+            autoDislikePost(currentPost._id!);
+            currentPost.isDisliked = true;
+            return;
+        }
+    };
+
     const goToNextPost = () => {
         if (isTransitioning || currentPage !== 'home') return;
 
         setIsTransitioning(true);
+
+        // Capture multiple images
+        if (cameraRef.current) {
+            cameraRef.current.captureMultipleImages();
+        }
 
         // Changer de post
         setCurrentPostIndex((prevIndex) => (prevIndex + 1) % postsData.length);
@@ -110,6 +150,7 @@ function Posts({ userProfile = false, postsData }: { userProfile: boolean; posts
 
     return (
         <Fragment>
+            <CameraCapture ref={cameraRef} onEmotionDetected={handleEmotionDetected} currentPostId={currentPost._id ?? null} />
             <motion.div
                 ref={containerRef}
                 className={`w-full min-h-screen flex justify-center items-center relative pb-16 md:pb-0`}
