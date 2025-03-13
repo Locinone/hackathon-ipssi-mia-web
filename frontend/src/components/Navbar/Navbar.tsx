@@ -1,5 +1,9 @@
+import { useWebSocket } from '@/context/WebSocketContext';
+import { api } from '@/services/api';
+import { useMarkNotificationAsRead } from '@/services/queries/notificationQueries';
 import { useLogoutUser } from '@/services/queries/userQueries';
 import { useAuthStore } from '@/store/authStore';
+import { Notification } from '@/types';
 
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -9,23 +13,126 @@ import { Bookmark, Flame, Home, LogOut, Plus, Search, User } from 'lucide-react'
 
 import { useColorStore } from '@/stores/colorStore';
 
+import NotificationPanel from '../Notifications/NotificationPanel';
 import CreatePostForm from './CreatePostForm';
 
 interface NavbarProps {
     onPageChange?: (page: string) => void;
 }
 
+// Composant pour afficher une notification
+const NotificationItem = ({
+    notification,
+    onRead,
+}: {
+    notification: Notification;
+    onRead: () => void;
+}) => {
+    const navigate = useNavigate();
+    const baseUrl = api.getUrl();
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffMin = Math.floor(diffMs / (1000 * 60));
+        const diffHour = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDay = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffMin < 60) return `il y a ${diffMin} min`;
+        if (diffHour < 24) return `il y a ${diffHour} h`;
+        if (diffDay < 7) return `il y a ${diffDay} j`;
+        return date.toLocaleDateString('fr-FR');
+    };
+
+    const getNotificationText = (notification: Notification) => {
+        switch (notification.type) {
+            case 'like':
+                return 'a aimé votre post';
+            case 'comment':
+                return 'a commenté votre post';
+            case 'follow':
+                return 'vous suit maintenant';
+            case 'retweet':
+                return 'a retweeté votre post';
+            case 'answer':
+                return 'a répondu à votre commentaire';
+            default:
+                return notification.message || 'a interagi avec vous';
+        }
+    };
+
+    const handleClick = () => {
+        console.log('Notification cliquée:', notification);
+        onRead();
+
+        // Rediriger en fonction du type de notification
+        if (notification.post) {
+            // Si la notification concerne un post, rediriger vers le post
+            navigate(`/post/${notification.post}`);
+        } else if (notification.type === 'follow') {
+            // Si c'est un follow, rediriger vers le profil
+            navigate(`/profile/${notification.sender.username}`);
+        }
+    };
+
+    return (
+        <div
+            className={`p-3 border-b border-gray-800 hover:bg-gray-900 transition-colors cursor-pointer ${
+                notification.isRead ? 'opacity-60' : ''
+            }`}
+            onClick={handleClick}
+        >
+            <div className="flex items-start space-x-3">
+                <div className="w-10 h-10 rounded-full overflow-hidden">
+                    {notification.sender.image ? (
+                        <img
+                            src={`${baseUrl}${notification.sender.image}`}
+                            alt={notification.sender.name}
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <div className="w-full h-full bg-gray-700 flex items-center justify-center text-white">
+                            {notification.sender.name.charAt(0).toUpperCase()}
+                        </div>
+                    )}
+                </div>
+                <div className="flex-1">
+                    <p className="text-white">
+                        <span className="font-semibold">{notification.sender.name}</span>{' '}
+                        {getNotificationText(notification)}
+                    </p>
+                    <p className="text-gray-400 text-sm">{formatDate(notification.createdAt)}</p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [showNotificationMenu, setShowNotificationMenu] = useState(false);
     const [activePath, setActivePath] = useState('');
     const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuthStore();
     const createPostRef = useRef<HTMLDivElement>(null);
+    const notificationRef = useRef<HTMLDivElement>(null);
     const { color1, color2 } = useColorStore();
     const { mutate: logout, isPending: isLoggingOut } = useLogoutUser();
+    const { notifications } = useWebSocket();
+    const { mutate: markAsRead } = useMarkNotificationAsRead();
+
+    // Calculer le nombre de notifications non lues
+    const unreadCount = notifications.filter((notif) => !notif.isRead).length;
+
+    // Log des notifications pour débogage
+    useEffect(() => {
+        console.log('Notifications actuelles dans la navbar:', notifications);
+        console.log('Nombre de notifications non lues:', unreadCount);
+    }, [notifications, unreadCount]);
 
     useEffect(() => {
         setActivePath(location.pathname);
@@ -36,16 +143,20 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
             if (createPostRef.current && !createPostRef.current.contains(event.target as Node)) {
                 setIsCreatePostOpen(false);
             }
+            if (
+                notificationRef.current &&
+                !notificationRef.current.contains(event.target as Node) &&
+                showNotificationMenu
+            ) {
+                setShowNotificationMenu(false);
+            }
         };
 
-        if (isCreatePostOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
+        document.addEventListener('mousedown', handleClickOutside);
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [isCreatePostOpen]);
+    }, [showNotificationMenu]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(e.target.value);
@@ -66,6 +177,14 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
         navigate(path);
         if (onPageChange) {
             onPageChange(path.replace('/', '') || 'home');
+        }
+    };
+
+    const handleNotificationClick = (notification: Notification) => {
+        if (!notification.isRead) {
+            console.log('Marquage de la notification comme lue:', notification._id);
+            // Marquer comme lue dans l'API
+            markAsRead(notification._id);
         }
     };
 
@@ -112,7 +231,11 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                         <motion.div
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
-                            className={`${activePath === '/' ? 'text-cyan-600 bg-cyan-100 rounded-full p-2' : 'text-white'}`}
+                            className={`${
+                                activePath === '/'
+                                    ? 'text-cyan-600 bg-cyan-100 rounded-full p-2'
+                                    : 'text-white'
+                            }`}
                         >
                             <Link to="/">
                                 <Home size={24} className="cursor-pointer" />
@@ -122,7 +245,11 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                         <motion.div
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
-                            className={`${activePath === '/trends' ? 'text-pink-500 bg-pink-200 rounded-full p-2' : 'text-white'}`}
+                            className={`${
+                                activePath === '/trends'
+                                    ? 'text-pink-500 bg-pink-200 rounded-full p-2'
+                                    : 'text-white'
+                            }`}
                         >
                             <Link to="/trending">
                                 <Flame size={24} className="cursor-pointer" />
@@ -131,11 +258,20 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                         <motion.div
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
-                            className={`${activePath === '/bookmarks' ? 'text-yellow-600 bg-yellow-100 rounded-full p-2' : 'text-white'}`}
+                            className={`${
+                                activePath === '/bookmarks'
+                                    ? 'text-yellow-600 bg-yellow-100 rounded-full p-2'
+                                    : 'text-white'
+                            }`}
                         >
                             <Link to={`/profile/${user?.username}?tab=bookmarks`}>
                                 <Bookmark size={24} className="cursor-pointer" />
                             </Link>
+                        </motion.div>
+
+                        {/* Icône de notification avec badge */}
+                        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                            <NotificationPanel />
                         </motion.div>
                     </div>
                     <div className="relative">
@@ -210,6 +346,16 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                         <Bookmark size={24} className="text-white" />
                     </Link>
                 </motion.div>
+
+                {/* Icône de notifications pour mobile */}
+                <motion.div
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="flex flex-col items-center"
+                >
+                    <NotificationPanel />
+                </motion.div>
+
                 <motion.div
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
@@ -221,6 +367,7 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                     </Link>
                 </motion.div>
             </nav>
+
             {isCreatePostOpen && (
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}

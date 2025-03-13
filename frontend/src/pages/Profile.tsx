@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
-import { motion } from 'framer-motion';
 import { Calendar, Link as LinkIcon, MapPin } from 'lucide-react';
 
 import UserBookmarks from '../components/Bookmarks/UserBookmarks';
 import { UserComments } from '../components/Comments/Comments';
 import UserLikes from '../components/Likes/UserLikes';
 import Posts from '../components/Posts/Posts';
+import FollowButton from '../components/Profile/FollowButton';
 import ProfileEditForm from '../components/ProfileEditForm';
 import UserRetweets from '../components/Retweets/UserRetweets';
 import Loader from '../components/ui/Loader';
@@ -78,13 +78,17 @@ const Profile = () => {
     const { mutate: updateUserProfile, isPending: isUpdating } = useUpdateUserProfile();
 
     // Récupérer les abonnés et les abonnements
-    const { data: followers, isLoading: isLoadingFollowers } = useUserFollowers(
-        followModal === 'followers' ? userData?._id : undefined
-    );
+    const {
+        data: followers,
+        isLoading: isLoadingFollowers,
+        refetch: refetchFollowers,
+    } = useUserFollowers(followModal === 'followers' ? userData?._id : undefined);
 
-    const { data: following, isLoading: isLoadingFollowing } = useUserFollowing(
-        followModal === 'following' ? userData?._id : undefined
-    );
+    const {
+        data: following,
+        isLoading: isLoadingFollowing,
+        refetch: refetchFollowing,
+    } = useUserFollowing(followModal === 'following' ? userData?._id : undefined);
 
     const baseUrl = api.getUrl();
 
@@ -185,6 +189,9 @@ const Profile = () => {
                     toast.dismiss(loadingToast);
                     toast.success(`Vous ne suivez plus ${userData.name}`);
                     refetch();
+                    // Rafraîchir les listes d'abonnés et d'abonnements
+                    refetchFollowers();
+                    refetchFollowing();
                 },
                 onError: (error) => {
                     toast.dismiss(loadingToast);
@@ -200,6 +207,9 @@ const Profile = () => {
                     toast.dismiss(loadingToast);
                     toast.success(`Vous suivez maintenant ${userData.name}`);
                     refetch();
+                    // Rafraîchir les listes d'abonnés et d'abonnements
+                    refetchFollowers();
+                    refetchFollowing();
                 },
                 onError: (error) => {
                     toast.dismiss(loadingToast);
@@ -281,29 +291,14 @@ const Profile = () => {
                                     Modifier le profil
                                 </button>
                             ) : (
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    className={`bg-white/20 px-4 py-2 rounded-full cursor-pointer transition-all duration-300 ${
-                                        userData.isFollowing
-                                            ? 'hover:bg-red-500 group'
-                                            : 'hover:bg-white group'
-                                    } `}
-                                    onClick={handleFollowToggle}
-                                >
-                                    <span className="group-hover:hidden">
-                                        {userData.isFollowing ? 'Suivi' : 'Suivre'}
-                                    </span>
-                                    {userData.isFollowing && (
-                                        <span className="hidden group-hover:block">
-                                            Se désabonner
-                                        </span>
-                                    )}
-                                    {!userData.isFollowing && (
-                                        <span className="hidden group-hover:block group-hover:text-black">
-                                            Suivre
-                                        </span>
-                                    )}
-                                </motion.button>
+                                <FollowButton
+                                    user={userData}
+                                    isFollowing={userData.isFollowing || false}
+                                    onFollowStatusChange={(isFollowing) => {
+                                        // Mettre à jour l'état local
+                                        refetch();
+                                    }}
+                                />
                             )}
                         </div>
 
@@ -502,37 +497,58 @@ const Profile = () => {
                                             {followers.map((follower) => (
                                                 <div
                                                     key={follower._id}
-                                                    className="flex items-center space-x-3 p-2 hover:bg-gray-900 rounded-lg"
+                                                    className="flex items-center justify-between p-2 hover:bg-gray-900 rounded-lg"
                                                 >
-                                                    <div className="w-10 h-10 rounded-full overflow-hidden">
-                                                        {follower.image ? (
-                                                            <img
-                                                                src={`${baseUrl}${follower.image}`}
-                                                                alt={follower.name || 'Utilisateur'}
-                                                                className="w-full h-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <div className="w-full h-full bg-gray-700 flex items-center justify-center text-white">
-                                                                {(follower.name || 'U')
-                                                                    .charAt(0)
-                                                                    .toUpperCase()}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-white font-medium">
-                                                            {follower.name || 'Utilisateur'}
-                                                        </p>
-                                                        <Link
-                                                            to={`/profile/${follower.username}`}
-                                                            onClick={closeFollowModal}
-                                                        >
-                                                            <p className="text-gray-400 text-sm hover:underline">
-                                                                {follower.username ||
-                                                                    '@utilisateur'}
+                                                    <div className="flex items-center space-x-3">
+                                                        <div className="w-10 h-10 rounded-full overflow-hidden">
+                                                            {follower.image ? (
+                                                                <img
+                                                                    src={`${baseUrl}${follower.image}`}
+                                                                    alt={
+                                                                        follower.name ||
+                                                                        'Utilisateur'
+                                                                    }
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-full h-full bg-gray-700 flex items-center justify-center text-white">
+                                                                    {(follower.name || 'U')
+                                                                        .charAt(0)
+                                                                        .toUpperCase()}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-white font-medium">
+                                                                {follower.name || 'Utilisateur'}
                                                             </p>
-                                                        </Link>
+                                                            <Link
+                                                                to={`/profile/${follower.username}`}
+                                                                onClick={closeFollowModal}
+                                                            >
+                                                                <p className="text-gray-400 text-sm hover:underline">
+                                                                    {follower.username ||
+                                                                        '@utilisateur'}
+                                                                </p>
+                                                            </Link>
+                                                        </div>
                                                     </div>
+                                                    {currentUserData?.data?._id !==
+                                                        follower._id && (
+                                                        <FollowButton
+                                                            user={follower}
+                                                            isFollowing={
+                                                                follower.isFollowing || false
+                                                            }
+                                                            showText={false}
+                                                            className="text-sm px-2 py-1"
+                                                            onFollowStatusChange={(isFollowing) => {
+                                                                // Rafraîchir les listes après changement de statut
+                                                                refetchFollowing();
+                                                                refetchFollowers();
+                                                            }}
+                                                        />
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -552,36 +568,51 @@ const Profile = () => {
                                         {following.map((follow) => (
                                             <div
                                                 key={follow._id}
-                                                className="flex items-center space-x-3 p-2 hover:bg-gray-900 rounded-lg"
+                                                className="flex items-center justify-between p-2 hover:bg-gray-900 rounded-lg"
                                             >
-                                                <div className="w-10 h-10 rounded-full overflow-hidden">
-                                                    {follow.image ? (
-                                                        <img
-                                                            src={`${baseUrl}${follow.image}`}
-                                                            alt={follow.name || 'Utilisateur'}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full bg-gray-700 flex items-center justify-center text-white">
-                                                            {(follow.name || 'U')
-                                                                .charAt(0)
-                                                                .toUpperCase()}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <p className="text-white font-medium">
-                                                        {follow.name || 'Utilisateur'}
-                                                    </p>
-                                                    <Link
-                                                        to={`/profile/${follow.username}`}
-                                                        onClick={closeFollowModal}
-                                                    >
-                                                        <p className="text-gray-400 text-sm hover:underline">
-                                                            {follow.username || 'utilisateur'}
+                                                <div className="flex items-center space-x-3">
+                                                    <div className="w-10 h-10 rounded-full overflow-hidden">
+                                                        {follow.image ? (
+                                                            <img
+                                                                src={`${baseUrl}${follow.image}`}
+                                                                alt={follow.name || 'Utilisateur'}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-gray-700 flex items-center justify-center text-white">
+                                                                {(follow.name || 'U')
+                                                                    .charAt(0)
+                                                                    .toUpperCase()}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-white font-medium">
+                                                            {follow.name || 'Utilisateur'}
                                                         </p>
-                                                    </Link>
+                                                        <Link
+                                                            to={`/profile/${follow.username}`}
+                                                            onClick={closeFollowModal}
+                                                        >
+                                                            <p className="text-gray-400 text-sm hover:underline">
+                                                                {follow.username || 'utilisateur'}
+                                                            </p>
+                                                        </Link>
+                                                    </div>
                                                 </div>
+                                                {currentUserData?.data?._id !== follow._id && (
+                                                    <FollowButton
+                                                        user={follow}
+                                                        isFollowing={true}
+                                                        showText={false}
+                                                        className="text-sm px-2 py-1"
+                                                        onFollowStatusChange={(isFollowing) => {
+                                                            // Rafraîchir les listes après changement de statut
+                                                            refetchFollowing();
+                                                            refetchFollowers();
+                                                        }}
+                                                    />
+                                                )}
                                             </div>
                                         ))}
                                     </div>
