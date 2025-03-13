@@ -133,9 +133,6 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment }) => {
                             <span className="text-gray-500">·</span>
                             <span className="text-gray-500">{formattedDate}</span>
                         </div>
-                        <button className="text-gray-500 hover:text-blue-500">
-                            <MoreHorizontal size={16} />
-                        </button>
                     </div>
                     <div className="mt-1">
                         <p className="text-white">{comment.content}</p>
