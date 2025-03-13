@@ -1,12 +1,14 @@
 const Post = require("../models/Post");
 const Hashtag = require("../models/Hashtag");
 const Theme = require("../models/Theme");
+const ScoreTheme = require("../models/ScoreTheme");
 const Share = require("../models/Share");
 const Interaction = require("../models/Interaction");
 const Bookmark = require("../models/Bookmark");
 const User = require("../models/User");
 const jsonResponse = require("../utils/jsonResponse");
 const NotificationManager = require("../utils/notificationManager");
+const axios = require("axios");
 
 const createPost = async (req, res) => {
   const io = req.app.get("io");
@@ -30,16 +32,50 @@ const createPost = async (req, res) => {
           await hashtag.save();
         }
         return hashtag._id;
-      }),
+      })
     );
 
     const filesPaths = files.map((file) => `/uploads/${file.filename}`);
+
+    let flaskResponse;
+    try {
+      const data = { text: [content] };
+      const config = { headers: { "Content-Type": "application/json", "x-api-key": process.env.API_KEY } };
+      const flaskApiHostname = process.env.FLASK_API_HOSTNAME || 'localhost';
+      const response = await axios.post(`http://${flaskApiHostname}:5010/analyze`, data, config);
+      flaskResponse = response.data;
+    } catch (flaskError) {
+      console.error("Error calling Flask API:", flaskError.message);
+      flaskResponse = { error: "Flask API failed" };
+    }
+
+    const dominantThemes = flaskResponse["processed_text"][0]["dominant_theme"] || [];
+    const themeIds = await Promise.all(
+      dominantThemes.map(async (themeStat) => {
+        let theme = await Theme.findOne({ name: themeStat["word"] });
+        if (!theme) {
+          theme = new Theme({ name: themeStat["word"] });
+          await theme.save();
+        }
+
+        if (themeStat["compound"] != 0.0) {  
+          const scoreTheme = new ScoreTheme({
+            score: themeStat["compound"] * 100,
+            theme: theme._id,
+            user: authorId,
+          });
+          await scoreTheme.save();
+        }
+        return theme._id;
+      })
+    );
 
     const post = new Post({
       content,
       files: filesPaths,
       author: authorId,
       hashtags: hashtagIds,
+      themes: themeIds,
     });
 
     await post.save();
@@ -47,7 +83,13 @@ const createPost = async (req, res) => {
     await Promise.all(
       hashtagIds.map(async (id) => {
         await Hashtag.findByIdAndUpdate(id, { $addToSet: { posts: post._id } });
-      }),
+      })
+    );
+
+    await Promise.all(
+      themeIds.map(async (id) => {
+        await Theme.findByIdAndUpdate(id, { $addToSet: { posts: post._id } });
+      })
     );
 
     const followers = await User.find({ following: authorId }).select("_id");
@@ -60,20 +102,25 @@ const createPost = async (req, res) => {
           type: "post",
           post: post._id,
           message: "Un utilisateur que vous suivez a publié un nouveau post.",
-        }),
-      ),
+        })
+      )
     );
+
 
     const populatedPost = await Post.findById(post._id)
       .populate("author", "username email")
       .populate("hashtags", "name")
       .populate("themes", "name");
 
-    jsonResponse(res, "Post créé avec succès", 201, populatedPost);
+    jsonResponse(res, "Post créé avec succès", 201, {
+      post: populatedPost,
+    });
+
   } catch (error) {
     jsonResponse(res, error.message, 400, null);
   }
 };
+
 
 const updatePost = async (req, res) => {
 
