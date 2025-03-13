@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 import { useColorStore } from '@/stores/colorStore';
 
-import { useCreateBookmark, useDislikePost, useLikePost } from '@/services/queries/interactionQueries';
+import { useCreateBookmark, useCreateComment, useDislikePost, useLikePost } from '@/services/queries/interactionQueries';
 import CameraCapture from '../Camera/CameraCapture';
 import CardPost from './CardPost';
 
@@ -22,7 +22,7 @@ function Posts({ userProfile = false, postsData }: { userProfile: boolean; posts
     const {mutate: autoLikePost} = useLikePost()
     const {mutate: autoDislikePost} = useDislikePost()
     const {mutate: autoBookmarkPost} = useCreateBookmark()
-    // const {mutate: autoCommentPost} = useCommentPost()
+    const {mutate: autoCommentPost} = useCreateComment()
 
     // Utiliser le store de couleurs
     const { gradient, generateRandomGradient } = useColorStore();
@@ -41,19 +41,19 @@ function Posts({ userProfile = false, postsData }: { userProfile: boolean; posts
         }
         if (emotion === 'surprise') {
             autoBookmarkPost(currentPost._id!);
+
             await sleep(1500);
             return;
         }
         if (emotion === 'happy') {
             await sleep(1500);
             autoLikePost(currentPost._id!);
-            currentPost.isLiked = true;
+            autoCommentPost({postId: currentPost._id!, comment:'😍'});
             return;
         } 
         if (emotion === 'angry' || emotion === 'sad' || emotion === 'disguste' || emotion === 'fear') {
             await sleep(1500);
             autoDislikePost(currentPost._id!);
-            currentPost.isDisliked = true;
             return;
         }
     };
