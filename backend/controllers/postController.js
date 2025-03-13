@@ -190,20 +190,35 @@ const getPosts = async (req, res) => {
       .populate("author", "username name")
       .populate("hashtags", "name")
       .populate("themes", "name")
+      .populate("comments", "author")
+      .populate("shares", "author")
       .sort({ createdAt: -1 });
 
     if (userId) {
-      let newPosts = posts.map(async post => {
-        const hasLiked = await Interaction.find({ post: post._id, user: userId, like: true });
-        const hasDisliked = await Interaction.find({ post: post._id, user: userId, like: false });
-        const hasShared = await Share.find({ post: post._id, user: userId });
-        const hasBookmarked = await Bookmark.find({ post: post._id, user: userId });
-        return { ...post, hasLiked, hasDisliked, hasShared, hasBookmarked };
-      });
-      jsonResponse(res, "Posts récupérés avec succès", 200, newPosts);
+      const updatedPosts = await Promise.all(posts.map(async post => {
+        const hasLiked = await Interaction.findOne({ post: post._id, user: userId, like: true });
+        const hasDisliked = await Interaction.findOne({ post: post._id, user: userId, like: false });
+        const hasShared = await Share.findOne({ post: post._id, user: userId });
+        const hasBookmarked = await Bookmark.findOne({ post: post._id, user: userId });
+
+        const author = await User.findById(post.author);
+        const isFollowing = await author.followers.some(followerId => followerId.toString() === userId.toString());
+        return {
+          ...post.toObject(),
+          hasLiked: hasLiked ? true : false,
+          hasDisliked: hasDisliked ? true : false,
+          hasShared: hasShared ? true : false,
+          hasBookmarked: hasBookmarked ? true : false,
+          author: {
+            ...post.author.toObject(),
+            isFollowing: isFollowing ? true : false
+          }
+        };
+      }));
+
+      jsonResponse(res, "Posts récupérés avec succès", 200, updatedPosts);
     } else {
       jsonResponse(res, "Posts récupérés avec succès", 200, posts);
-
     }
 
   } catch (error) {
@@ -229,12 +244,42 @@ const getPostById = async (req, res) => {
 };
 
 const getPostsByUserId = async (req, res) => {
+
+  const userId = req.user.id;
+
   try {
     const posts = await Post.find({ author: req.params.userId })
       .populate("author", "username name")
       .populate("hashtags", "name")
       .populate("themes", "name");
-    jsonResponse(res, "Posts récupérés avec succès", 200, posts);
+
+    // Récupérer les interactions, commentaires et retweets pour chaque post
+    if (userId) {
+      const updatedPosts = await Promise.all(posts.map(async post => {
+        const hasLiked = await Interaction.findOne({ post: post._id, user: userId, like: true });
+        const hasDisliked = await Interaction.findOne({ post: post._id, user: userId, like: false });
+        const hasShared = await Share.findOne({ post: post._id, user: userId });
+        const hasBookmarked = await Bookmark.findOne({ post: post._id, user: userId });
+
+        const author = await User.findById(post.author);
+        const isFollowing = await author.followers.some(followerId => followerId.toString() === userId.toString());
+        return {
+          ...post.toObject(),
+          hasLiked: hasLiked ? true : false,
+          hasDisliked: hasDisliked ? true : false,
+          hasShared: hasShared ? true : false,
+          hasBookmarked: hasBookmarked ? true : false,
+          author: {
+            ...post.author.toObject(),
+            isFollowing: isFollowing ? true : false
+          }
+        };
+      }));
+
+      jsonResponse(res, "Posts récupérés avec succès", 200, updatedPosts);
+    } else {
+      jsonResponse(res, "Posts récupérés avec succès", 200, posts);
+    }
   } catch (error) {
     jsonResponse(res, error.message, 500, null);
   }

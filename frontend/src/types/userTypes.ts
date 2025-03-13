@@ -6,15 +6,16 @@ export interface User {
     biography?: string;
     location?: string;
     link?: string;
-    image: string;
-    banner: string;
-    role: 'user' | 'admin';
-    following: string[] | User[];
-    followers: string[] | User[];
-    createdAt?: string;
-    acceptNotification?: boolean;
-    acceptTerms?: boolean;
-    acceptCamera?: boolean;
+    image?: string;
+    banner?: string;
+    role: string;
+    followers: string[];
+    following: string[];
+    acceptNotification: boolean;
+    acceptTerms: boolean;
+    acceptCamera: boolean;
+    isFollowing?: boolean;
+    createdAt: string;
     __v?: number;
 }
 

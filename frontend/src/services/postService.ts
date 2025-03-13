@@ -26,8 +26,8 @@ class PostService {
     }
 
     public async getPosts(): Promise<ApiResponse<Post[]>> {
-        const response = await api.fetchRequest(`${this.apiUrl}/`, 'GET');
-        return response as ApiResponse<Post[]>;
+        const response = await api.fetchRequest(`${this.apiUrl}/`, 'GET', null, true);
+        return response;
     }
 
     public async getPostsByUserId(userId: string): Promise<ApiResponse<Post[]>> {
