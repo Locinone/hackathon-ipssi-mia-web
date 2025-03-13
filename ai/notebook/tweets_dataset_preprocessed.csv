@@ -1,0 +1,11 @@
+Tweet_ID,Username,Text,Category,Retweets,Likes,Timestamp,Text_Clean
+1,user_1,J'adore le football et la Ligue des Champions est incroyable ! #UCL #Football,Sport,326,4291,2024-06-06 11:01:27,jadore football ligue champion incroyable
+2,user_2,"Le Bitcoin a encore explosé cette semaine, faut-il investir ? #Crypto #BTC",Finance,158,2157,2025-02-25 11:01:27,bitcoin a encore explosé cette semaine fautil investir
+3,user_3,Les voitures électriques vont dominer le marché automobile. #Tesla #EV,Tech,121,4066,2024-03-30 11:01:27,voitures électriques vont dominer marché automobile
+4,user_4,Quel est le meilleur téléphone en 2025 ? #Tech #Smartphone,Tech,73,3056,2024-05-23 11:01:27,quel meilleur téléphone
+5,user_5,L'intelligence artificielle est en train de révolutionner le monde. #AI #Tech,Tech,656,592,2024-09-29 11:01:27,lintelligence artificielle train révolutionner monde
+6,user_6,"Netflix sort une nouvelle série demain, hâte de voir ça ! #Netflix #Streaming",Entertainment,745,3139,2024-05-30 11:01:27,netflix sort nouvelle série demain hâte voir ça
+7,user_7,Elon Musk vient d'annoncer une nouvelle mise à jour pour Tesla. #Tesla #Tech,Tech,885,4330,2024-09-22 11:01:27,elon musk vient dannoncer nouvelle mise jour tesla
+8,user_8,"La bourse est en chute libre aujourd'hui, inquiétant ! #Finance #Trading",Finance,685,1285,2025-02-14 11:01:27,bourse chute libre aujourdhui inquiétant
+9,user_9,Les montres connectées sont devenues un must-have en 2025. #Tech #Wearables,Tech,731,656,2024-12-20 11:01:27,montres connectées devenues musthave
+10,user_10,Quel est le top 10 des livres à lire absolument cette année ? #Books #Reading,Culture,116,253,2024-08-31 11:01:27,quel top livres lira absolument cette année
