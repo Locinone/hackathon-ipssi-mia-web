@@ -188,16 +188,81 @@ const updatePost = async (req, res) => {
 
 const getPosts = async (req, res) => {
   const userId = req.user?.id || null;
+  const { h, u, s, sd, ed, order } = req.query;
+  console.log("h", h);
+  console.log("u", u);
+  console.log("s", s);
+  console.log("sd", sd);
+  console.log("ed", ed);
+  console.log("order", order);
+
   try {
-    const posts = await Post.find()
+    // Déterminer l'ordre de tri
+    let sortOption = { createdAt: -1 }; // Par défaut, du plus récent au plus ancien
+
+    if (order === 'likes') {
+      sortOption = { likesCount: -1 };
+    } else if (order === 'dislikes') {
+      sortOption = { dislikesCount: -1 };
+    } else if (order === 'shares') {
+      sortOption = { sharesCount: -1 };
+    }
+
+    // Query de base
+    let query = {};
+
+    // Filtres pour les dates
+    if (sd && ed) {
+      query.createdAt = {
+        $gte: new Date(sd),
+        $lte: new Date(ed)
+      };
+    } else if (sd) {
+      query.createdAt = { $gte: new Date(sd) };
+    } else if (ed) {
+      query.createdAt = { $lte: new Date(ed) };
+    }
+
+    let posts = await Post.find(query)
       .populate("files")
       .populate("author", "username name")
       .populate("hashtags", "name")
       .populate("themes", "name")
       .populate("comments", "author")
       .populate("shares", "author")
-      .sort({ createdAt: -1 });
 
+    // Filtres côté application
+    if (h) {
+      posts = posts.filter(post => post.hashtags.some(hashtag => hashtag.name.toLowerCase() === "#" + h.toLowerCase()));
+    }
+
+    if (u) {
+      posts = posts.filter(post =>
+        post.author.username.toLowerCase() === u.toLowerCase()
+        || post.author.username.toLowerCase().includes(u.toLowerCase())
+        || post.author.name.toLowerCase().includes(u.toLowerCase())
+        || post.author.username.toLowerCase().includes("@" + u.toLowerCase())
+        || post.author.name.toLowerCase().includes("@" + u.toLowerCase())
+      );
+    }
+
+    if (s) {
+      posts = posts.filter(post => post.content.toLowerCase().includes(s.toLowerCase()));
+    }
+
+    // Trier les posts selon l'option de tri
+    if (order) {
+      // Utiliser le paramètre order directement pour le tri
+      if (order === "likes") {
+        posts.sort((a, b) => b.likes.length - a.likes.length);
+      } else if (order === "dislikes") {
+        posts.sort((a, b) => b.dislikes.length - a.dislikes.length);
+      } else if (order === "shares") {
+        posts.sort((a, b) => b.shares.length - a.shares.length);
+      }
+    }
+
+    // Ajout des informations d'interaction
     if (userId) {
       const updatedPosts = await Promise.all(posts.map(async post => {
         const hasLiked = await Interaction.findOne({ post: post._id, user: userId, like: true });
@@ -220,6 +285,7 @@ const getPosts = async (req, res) => {
         };
       }));
 
+
       jsonResponse(res, "Posts récupérés avec succès", 200, updatedPosts);
     } else {
       jsonResponse(res, "Posts récupérés avec succès", 200, posts);
@@ -229,7 +295,6 @@ const getPosts = async (req, res) => {
     jsonResponse(res, error.message, 500, null);
   }
 };
-
 const getPostById = async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId)
@@ -239,6 +304,35 @@ const getPostById = async (req, res) => {
 
     if (!post) {
       return jsonResponse(res, "Post introuvable", 404, null);
+    }
+
+    // Ajout des informations d'interaction si l'utilisateur est connecté
+    if (req.user?.id) {
+      const userId = req.user.id;
+
+      const [hasLiked, hasDisliked, hasShared, hasBookmarked] = await Promise.all([
+        Interaction.findOne({ post: post._id, user: userId, like: true }),
+        Interaction.findOne({ post: post._id, user: userId, like: false }),
+        Share.findOne({ post: post._id, user: userId }),
+        Bookmark.findOne({ post: post._id, user: userId })
+      ]);
+
+      const author = await User.findById(post.author);
+      const isFollowing = await author.followers.some(followerId => followerId.toString() === userId.toString());
+
+      const updatedPost = {
+        ...post.toObject(),
+        hasLiked: !!hasLiked,
+        hasDisliked: !!hasDisliked,
+        hasShared: !!hasShared,
+        hasBookmarked: !!hasBookmarked,
+        author: {
+          ...post.author.toObject(),
+          isFollowing: isFollowing
+        }
+      };
+
+      return jsonResponse(res, "Post récupéré avec succès", 200, updatedPost);
     }
 
     jsonResponse(res, "Post récupéré avec succès", 200, post);

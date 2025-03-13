@@ -9,6 +9,8 @@ import { WebSocketProvider } from './context/WebSocketContext';
 // Importez les nouvelles pages
 import Home from './pages/Home';
 import Login from './pages/Login';
+import UniquePostPage from './pages/Post';
+import PostsPage from './pages/Posts';
 import Profile from './pages/Profile';
 import { useAuthStore } from './store/authStore';
 
@@ -18,6 +20,8 @@ const ProtectedRoutes = () => {
         <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/profile/:username" element={<Profile />} />
+            <Route path="/posts" element={<PostsPage />} />
+            <Route path="/post/:id" element={<UniquePostPage />} />
         </Routes>
     );
 };

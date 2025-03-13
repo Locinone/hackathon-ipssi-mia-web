@@ -16,6 +16,7 @@ const themeRoutes = require("./routes/themeRoutes");
 const scoreThemeRoutes = require("./routes/scoreThemeRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const interactionRoutes = require('./routes/interactionRoutes');
+const trendingRoutes = require('./routes/trendingRoutes');
 const Notification = require("./models/Notification");
 const User = require("./models/User");
 const NotificationManager = require("./utils/notificationManager");
@@ -72,6 +73,7 @@ app.use("/api/themes", themeRoutes);
 app.use("/api/scoreThemes", scoreThemeRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use('/api/interactions', interactionRoutes);
+app.use('/api/trendings', trendingRoutes);
 
 // Middleware d'authentification pour WebSocket
 io.use((socket, next) => {
