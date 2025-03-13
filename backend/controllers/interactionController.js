@@ -473,6 +473,13 @@ const deleteRetweet = async (req, res) => {
         const { postId } = req.params;
         const userId = req.user?.id;
 
+        // Vérification que l'utilisateur est bien authentifié
+        if (!userId) {
+            return jsonResponse(res, "Utilisateur non authentifié", 401, null);
+        }
+
+        console.log(`Tentative de suppression de retweet - User ID: ${userId}, Post ID: ${postId}`);
+
         const post = await Post.findById(postId);
         if (!post) {
             return jsonResponse(res, "Post introuvable", 404, null);
@@ -487,16 +494,29 @@ const deleteRetweet = async (req, res) => {
             return jsonResponse(res, "Retweet introuvable", 404, null);
         }
 
-        await Share.findByIdAndDelete(retweet._id);
+        console.log(`Retweet trouvé - ID: ${retweet._id}`);
 
-        // Mettre à jour le post original
+        // Supprimer le retweet
+        await Share.findByIdAndDelete(retweet._id);
+        console.log(`Retweet supprimé de la collection Share`);
+
+        // Vérifier si le tableau shares existe
+        if (!post.shares) {
+            post.shares = [];
+        }
+
+        // Mettre à jour le post original avec conversion explicite en chaîne
         post.shares = post.shares.filter(
             (rt) => rt.toString() !== retweet._id.toString()
         );
+        console.log(`Post mis à jour - ${post.shares.length} retweets restants`);
+
         await post.save();
+        console.log(`Post sauvegardé après suppression du retweet`);
 
         return jsonResponse(res, "Retweet supprimé avec succès", 200, null);
     } catch (error) {
+        console.error("Erreur lors de la suppression du retweet:", error);
         return jsonResponse(res, error.message, 500, null);
     }
 };
@@ -555,12 +575,24 @@ const deleteBookmark = async (req, res) => {
         const { postId } = req.params;
         const userId = req.user?.id;
 
+        const post = await Post.findById(postId);
+        if (!post) {
+            return jsonResponse(res, "Post introuvable", 404, null);
+        }
+
         const bookmark = await Bookmark.findOne({ post: postId, user: userId });
         if (!bookmark) {
             return jsonResponse(res, "Signet introuvable", 404, null);
         }
 
         await Bookmark.findByIdAndDelete(bookmark._id);
+
+        // Mettre à jour le post original
+        if (!post.bookmarks) {
+            post.bookmarks = [];
+        }
+        post.bookmarks = post.bookmarks.filter(b => b.toString() !== bookmark._id.toString());
+        await post.save();
 
         return jsonResponse(res, "Signet supprimé avec succès", 200, null);
     } catch (error) {
@@ -627,9 +659,24 @@ const getUserBookmarks = async (req, res) => {
 
 // Followers
 const followUser = async (req, res) => {
+    const io = req.app.get("io");
+    const notificationManager = new NotificationManager(io);
+
     try {
         const { userId } = req.params;
         const followerId = req.user?.id;
+
+        // Vérification que l'utilisateur est bien authentifié
+        if (!followerId) {
+            return jsonResponse(res, "Utilisateur non authentifié", 401, null);
+        }
+
+        console.log(`Demande de follow: ${followerId} veut suivre ${userId}`);
+
+        // Vérifier que l'utilisateur ne tente pas de se suivre lui-même
+        if (userId === followerId) {
+            return jsonResponse(res, "Vous ne pouvez pas vous suivre vous-même", 400, null);
+        }
 
         const user = await User.findById(userId);
         if (!user) {
@@ -641,26 +688,72 @@ const followUser = async (req, res) => {
             return jsonResponse(res, "Utilisateur introuvable", 404, null);
         }
 
-        if (follower.following.includes(userId)) {
+        // Vérifier si l'utilisateur suit déjà la cible avec conversion explicite en chaîne
+        const isAlreadyFollowing = follower.following.some(id => id.toString() === userId.toString());
+        if (isAlreadyFollowing) {
             return jsonResponse(res, "Vous suivez déjà cet utilisateur", 400, null);
         }
 
+        // Ajouter la relation d'abonnement
         follower.following.push(userId);
         user.followers.push(followerId);
+
+        console.log(`Avant sauvegarde - Abonnements de ${follower.username}:`, follower.following.length);
+        console.log(`Avant sauvegarde - Abonnés de ${user.username}:`, user.followers.length);
+
         await follower.save();
         await user.save();
 
-        return jsonResponse(res, "Utilisateur suivi avec succès", 201, follower);
+        console.log(`${follower.username} suit maintenant ${user.username}`);
+
+        // Envoyer une notification à l'utilisateur suivi
+        await notificationManager.sendNotification({
+            sender: followerId,
+            receiver: userId,
+            type: "follow",
+            message: `${follower.username} vous suit désormais`,
+        });
+
+        return jsonResponse(res, "Utilisateur suivi avec succès", 201, {
+            follower: {
+                _id: follower._id,
+                username: follower.username,
+                name: follower.name,
+                image: follower.image
+            },
+            following: {
+                _id: user._id,
+                username: user.username,
+                name: user.name,
+                image: user.image
+            }
+        });
     } catch (error) {
+        console.error("Erreur lors du follow:", error);
         return jsonResponse(res, error.message, 500, null);
     }
 };
 
 const unfollowUser = async (req, res) => {
+    const io = req.app.get("io");
+    const notificationManager = new NotificationManager(io);
+
     try {
         const { userId } = req.params;
-        const followerId = req.user?.id.toString();
+        const followerId = req.user?.id;
+        console.log("Désabonnement - IDs:", { userId, followerId });
 
+        // Vérification que l'utilisateur est bien authentifié
+        if (!followerId) {
+            return jsonResponse(res, "Utilisateur non authentifié", 401, null);
+        }
+
+        console.log(`Demande d'unfollow: ${followerId} ne veut plus suivre ${userId}`);
+
+        // Vérifier que l'utilisateur ne tente pas de se désabonner de lui-même
+        if (userId === followerId) {
+            return jsonResponse(res, "Opération invalide", 400, null);
+        }
 
         const user = await User.findById(userId);
         if (!user) {
@@ -672,19 +765,44 @@ const unfollowUser = async (req, res) => {
             return jsonResponse(res, "Utilisateur introuvable", 404, null);
         }
 
-        console.log(follower.following, userId);
-        console.log(follower.followers, userId);
-        if (!follower.following.includes(userId)) {
+        // Vérifier si l'utilisateur suit bien la cible
+        const isFollowing = follower.following.some(id => id.toString() === userId.toString());
+        if (!isFollowing) {
             return jsonResponse(res, "Vous ne suivez pas cet utilisateur", 400, null);
         }
 
-        follower.following = follower.following.filter((id) => id.toString() !== userId);
-        user.followers = user.followers.filter((id) => id.toString() !== followerId);
+        // Supprimer la relation d'abonnement avec conversion explicite en chaîne
+        follower.following = follower.following.filter(id => id.toString() !== userId.toString());
+        user.followers = user.followers.filter(id => id.toString() !== followerId.toString());
+
+        console.log(`Après filtrage - Abonnements de ${follower.username}:`, follower.following.length);
+        console.log(`Après filtrage - Abonnés de ${user.username}:`, user.followers.length);
+
         await follower.save();
         await user.save();
 
-        return jsonResponse(res, "Utilisateur non suivi avec succès", 200, null);
+        console.log(`${follower.username} ne suit plus ${user.username}`);
+
+        // Envoyer une notification à l'utilisateur qui n'est plus suivi
+        await notificationManager.sendNotification({
+            sender: followerId,
+            receiver: userId,
+            type: "unfollow",
+            message: `${follower.username} ne vous suit plus`,
+        });
+
+        return jsonResponse(res, "Utilisateur non suivi avec succès", 200, {
+            follower: {
+                _id: follower._id,
+                username: follower.username
+            },
+            unfollowed: {
+                _id: user._id,
+                username: user.username
+            }
+        });
     } catch (error) {
+        console.error("Erreur lors de l'unfollow:", error);
         return jsonResponse(res, error.message, 500, null);
     }
 };

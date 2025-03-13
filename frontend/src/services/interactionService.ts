@@ -16,13 +16,26 @@ class InteractionService {
     }
 
     public async deleteLike(postId: string): Promise<ApiResponse<Post>> {
-        const response = await api.fetchRequest(
-            `${this.apiUrl}/likes/${postId}/delete`,
-            'DELETE',
-            null,
-            true
-        );
-        return response.data;
+        try {
+            console.log(`Service - Suppression du like pour le post ${postId}`);
+            const response = await api.fetchRequest(
+                `${this.apiUrl}/likes/${postId}/delete`,
+                'DELETE',
+                null,
+                true
+            );
+
+            if (!response.success) {
+                console.error('Service - Erreur lors de la suppression du like:', response.message);
+                throw new Error(response.message || 'Erreur lors de la suppression du like');
+            }
+
+            console.log('Service - Like supprimé avec succès');
+            return response;
+        } catch (error) {
+            console.error('Service - Exception lors de la suppression du like:', error);
+            throw error;
+        }
     }
 
     public async createDislike(postId: string): Promise<ApiResponse<Post>> {
@@ -36,13 +49,29 @@ class InteractionService {
     }
 
     public async deleteDislike(postId: string): Promise<ApiResponse<Post>> {
-        const response = await api.fetchRequest(
-            `${this.apiUrl}/dislikes/${postId}/delete`,
-            'DELETE',
-            null,
-            true
-        );
-        return response.data;
+        try {
+            console.log(`Service - Suppression du dislike pour le post ${postId}`);
+            const response = await api.fetchRequest(
+                `${this.apiUrl}/dislikes/${postId}/delete`,
+                'DELETE',
+                null,
+                true
+            );
+
+            if (!response.success) {
+                console.error(
+                    'Service - Erreur lors de la suppression du dislike:',
+                    response.message
+                );
+                throw new Error(response.message || 'Erreur lors de la suppression du dislike');
+            }
+
+            console.log('Service - Dislike supprimé avec succès');
+            return response;
+        } catch (error) {
+            console.error('Service - Exception lors de la suppression du dislike:', error);
+            throw error;
+        }
     }
 
     // Comments
@@ -58,13 +87,29 @@ class InteractionService {
     }
 
     public async deleteComment(postId: string, commentId: string): Promise<ApiResponse<Comment>> {
-        const response = await api.fetchRequest(
-            `${this.apiUrl}/comments/${postId}/${commentId}/delete`,
-            'DELETE',
-            null,
-            true
-        );
-        return response.data;
+        try {
+            console.log(`Service - Suppression du commentaire ${commentId} du post ${postId}`);
+            const response = await api.fetchRequest(
+                `${this.apiUrl}/comments/${postId}/${commentId}/delete`,
+                'DELETE',
+                null,
+                true
+            );
+
+            if (!response.success) {
+                console.error(
+                    'Service - Erreur lors de la suppression du commentaire:',
+                    response.message
+                );
+                throw new Error(response.message || 'Erreur lors de la suppression du commentaire');
+            }
+
+            console.log('Service - Commentaire supprimé avec succès');
+            return response;
+        } catch (error) {
+            console.error('Service - Exception lors de la suppression du commentaire:', error);
+            throw error;
+        }
     }
 
     public async getComments(postId: string): Promise<ApiResponse<Comment[]>> {
@@ -95,13 +140,29 @@ class InteractionService {
     }
 
     public async deleteRetweet(postId: string): Promise<ApiResponse<Post>> {
-        const response = await api.fetchRequest(
-            `${this.apiUrl}/retweets/${postId}/delete`,
-            'DELETE',
-            null,
-            true
-        );
-        return response.data;
+        try {
+            console.log(`Service - Suppression du retweet pour le post ${postId}`);
+            const response = await api.fetchRequest(
+                `${this.apiUrl}/retweets/${postId}/delete`,
+                'DELETE',
+                null,
+                true
+            );
+
+            if (!response.success) {
+                console.error(
+                    'Service - Erreur lors de la suppression du retweet:',
+                    response.message
+                );
+                throw new Error(response.message || 'Erreur lors de la suppression du retweet');
+            }
+
+            console.log('Service - Retweet supprimé avec succès');
+            return response;
+        } catch (error) {
+            console.error('Service - Exception lors de la suppression du retweet:', error);
+            throw error;
+        }
     }
 
     // Signets
@@ -117,13 +178,29 @@ class InteractionService {
     }
 
     public async deleteBookmark(postId: string): Promise<ApiResponse<Post>> {
-        const response = await api.fetchRequest(
-            `${this.apiUrl}/bookmarks/${postId}/delete`,
-            'DELETE',
-            null,
-            true
-        );
-        return response.data;
+        try {
+            console.log(`Service - Suppression du signet pour le post ${postId}`);
+            const response = await api.fetchRequest(
+                `${this.apiUrl}/bookmarks/${postId}/delete`,
+                'DELETE',
+                null,
+                true
+            );
+
+            if (!response.success) {
+                console.error(
+                    'Service - Erreur lors de la suppression du signet:',
+                    response.message
+                );
+                throw new Error(response.message || 'Erreur lors de la suppression du signet');
+            }
+
+            console.log('Service - Signet supprimé avec succès');
+            return response;
+        } catch (error) {
+            console.error('Service - Exception lors de la suppression du signet:', error);
+            throw error;
+        }
     }
 
     public async getUserBookmarks(): Promise<ApiResponse<Post[]>> {
@@ -161,7 +238,7 @@ class InteractionService {
         try {
             console.log(`Service - Suivre l'utilisateur ${userId}`);
             const response = await api.fetchRequest(
-                `${this.apiUrl}/followers/${userId}/follow`,
+                `${this.apiUrl}/follow/${userId}`,
                 'POST',
                 null,
                 true
@@ -188,7 +265,7 @@ class InteractionService {
         try {
             console.log(`Service - Ne plus suivre l'utilisateur ${userId}`);
             const response = await api.fetchRequest(
-                `${this.apiUrl}/followers/${userId}/unfollow`,
+                `${this.apiUrl}/unfollow/${userId}`,
                 'DELETE',
                 null,
                 true

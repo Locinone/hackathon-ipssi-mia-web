@@ -68,12 +68,21 @@ class NotificationService {
     public async deleteNotification(notificationId: string): Promise<void> {
         try {
             console.log(`Service - Suppression de la notification ${notificationId}`);
+
+            // Vérifier que l'ID est valide
+            if (!notificationId || notificationId.trim() === '') {
+                throw new Error('ID de notification invalide');
+            }
+
             const response = await api.fetchRequest(
                 `${this.apiUrl}/${notificationId}`,
                 'DELETE',
                 null,
                 true
             );
+
+            // Vérifier la réponse même si elle n'est pas un succès
+            console.log('Service - Réponse de suppression:', response);
 
             if (!response.success) {
                 console.error(

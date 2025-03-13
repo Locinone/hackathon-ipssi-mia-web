@@ -30,7 +30,7 @@ router.delete("/bookmarks/:postId/delete", authenticateJWT, interactionControlle
 router.get("/bookmarks/user", authenticateJWT, interactionController.getUserBookmarks);
 
 // Routes pour les followers
-router.post("/followers/:userId/follow", authenticateJWT, interactionController.followUser);
-router.delete("/followers/:userId/unfollow", authenticateJWT, interactionController.unfollowUser);
+router.post("/follow/:userId", authenticateJWT, interactionController.followUser);
+router.delete("/unfollow/:userId", authenticateJWT, interactionController.unfollowUser);
 
 module.exports = router;

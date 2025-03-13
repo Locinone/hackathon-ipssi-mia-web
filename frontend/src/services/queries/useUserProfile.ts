@@ -106,6 +106,7 @@ export const useUpdateUserProfile = () => {
                 biography: data.biography,
                 location: data.location,
                 link: data.link,
+                acceptNotification: data.acceptNotification,
             });
 
             return response.data;

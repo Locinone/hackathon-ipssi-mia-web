@@ -27,7 +27,7 @@ Make sure you have the following installed on your machine:
 
 2. Build and start the services using Docker Compose:
     ```bash
-    docker-compose up --build
+    docker-compose up -d
     ```
 
 ## Usage

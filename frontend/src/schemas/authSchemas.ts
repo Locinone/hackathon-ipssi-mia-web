@@ -64,6 +64,7 @@ export const updateUserSchema = z.object({
     location: z.string().optional(),
     link: z.string().optional(),
     biography: z.string().optional(),
+    acceptNotification: z.boolean().optional(),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;

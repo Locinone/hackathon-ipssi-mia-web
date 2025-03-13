@@ -231,12 +231,58 @@ export const useGetUserBookmarks = () => {
 
 // Followers
 export const useFollowUser = () => {
+    const queryClient = useQueryClient();
+
     return useMutation({
         mutationFn: (userId: string) => {
             console.log(`Mutation - Suivre l'utilisateur: ${userId}`);
             return interactionService.followUser(userId);
         },
         onSuccess: (data, userId) => {
+            console.log(`Mutation - Suivi réussi pour: ${userId}`, data);
+
+            // Invalider toutes les requêtes pertinentes
+            queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+            queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+
+            // Invalider spécifiquement les listes d'abonnés et d'abonnements
+            queryClient.invalidateQueries({ queryKey: ['userFollowers'] });
+            queryClient.invalidateQueries({ queryKey: ['userFollowing'] });
+
+            // Invalider spécifiquement les données de l'utilisateur concerné
+            queryClient.invalidateQueries({ queryKey: ['userProfile', userId] });
+
+            // Mettre à jour directement le cache si possible
+            try {
+                // Mettre à jour le statut isFollowing dans le profil de l'utilisateur
+                queryClient.setQueryData(['userProfile', userId], (oldData: any) => {
+                    if (!oldData) return oldData;
+                    return { ...oldData, isFollowing: true };
+                });
+
+                // Ajouter l'utilisateur à la liste des abonnements de l'utilisateur courant
+                const currentUserId = queryClient.getQueryData<any>(['currentUser'])?.data?._id;
+                if (currentUserId) {
+                    // Mettre à jour la liste des abonnements
+                    queryClient.setQueryData(['userFollowing', currentUserId], (oldData: any) => {
+                        if (!oldData || !Array.isArray(oldData)) return oldData;
+
+                        // Vérifier si l'utilisateur est déjà dans la liste
+                        const userExists = oldData.some((user: any) => user._id === userId);
+                        if (userExists) return oldData;
+
+                        // Récupérer les données de l'utilisateur depuis le cache si disponible
+                        const userData = queryClient.getQueryData<any>(['userProfile', userId]);
+                        if (!userData) return oldData;
+
+                        // Ajouter l'utilisateur à la liste avec isFollowing=true
+                        return [...oldData, { ...userData, isFollowing: true }];
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur lors de la mise à jour du cache:', error);
+            }
+
             toast.success('Vous suivez maintenant cet utilisateur');
         },
         onError: (error: any) => {
@@ -247,12 +293,48 @@ export const useFollowUser = () => {
 };
 
 export const useUnfollowUser = () => {
+    const queryClient = useQueryClient();
+
     return useMutation({
         mutationFn: (userId: string) => {
             console.log(`Mutation - Ne plus suivre l'utilisateur: ${userId}`);
             return interactionService.unfollowUser(userId);
         },
         onSuccess: (data, userId) => {
+            console.log(`Mutation - Désabonnement réussi pour: ${userId}`, data);
+
+            // Invalider toutes les requêtes pertinentes
+            queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+            queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+
+            // Invalider spécifiquement les listes d'abonnés et d'abonnements
+            queryClient.invalidateQueries({ queryKey: ['userFollowers'] });
+            queryClient.invalidateQueries({ queryKey: ['userFollowing'] });
+
+            // Invalider spécifiquement les données de l'utilisateur concerné
+            queryClient.invalidateQueries({ queryKey: ['userProfile', userId] });
+
+            // Mettre à jour directement le cache si possible
+            try {
+                // Mettre à jour le statut isFollowing dans le profil de l'utilisateur
+                queryClient.setQueryData(['userProfile', userId], (oldData: any) => {
+                    if (!oldData) return oldData;
+                    return { ...oldData, isFollowing: false };
+                });
+
+                // Supprimer l'utilisateur de la liste des abonnements de l'utilisateur courant
+                const currentUserId = queryClient.getQueryData<any>(['currentUser'])?.data?._id;
+                if (currentUserId) {
+                    // Mettre à jour la liste des abonnements
+                    queryClient.setQueryData(['userFollowing', currentUserId], (oldData: any) => {
+                        if (!oldData || !Array.isArray(oldData)) return oldData;
+                        return oldData.filter((user: any) => user._id !== userId);
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur lors de la mise à jour du cache:', error);
+            }
+
             toast.success('Vous ne suivez plus cet utilisateur');
         },
         onError: (error: any) => {
