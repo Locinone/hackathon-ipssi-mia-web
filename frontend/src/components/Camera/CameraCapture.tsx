@@ -1,14 +1,17 @@
+import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
 
 import './CameraCapture.css';
 
-const CameraCapture = () => {
+const CameraCapture = ({ onEmotionDetected, currentPostId }: { onEmotionDetected: (emotion: string) => void, currentPostId: string | null }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [cameraActive, setCameraActive] = useState<boolean>(false);
     const intervalRef = useRef<number | null>(null);
     const [imageCount, setImageCount] = useState<number>(0);
+    const [imageList, setImageList] = useState<string[]>([]);
+    const [isCapturing, setIsCapturing] = useState<boolean>(false);
 
     useEffect(() => {
         const startCamera = async () => {
@@ -42,48 +45,53 @@ const CameraCapture = () => {
     }, []);
 
     useEffect(() => {
-        if (cameraActive) {
-            intervalRef.current = window.setInterval(() => {
-                captureMultipleImages();
-            }, 300);
-        }
-
-        return () => {
-            if (intervalRef.current) {
-                window.clearInterval(intervalRef.current);
-            }
-        };
-    }, [cameraActive]);
-
-    useEffect(() => {
         const handleScrollDown = async (event: WheelEvent) => {
-            if (event.deltaY > 100) {
+            if (event.deltaY > 100 && !isCapturing) {
                 console.log('Scroll vers le bas détecté');
-                await new Promise((resolve) => setTimeout(resolve, 5000)); // Delay of 5 second
-                captureMultipleImages();
+                setIsCapturing(true);
+                await new Promise((resolve) => setTimeout(resolve, 2500)); // Delay of 4,5 second
+                captureMultipleImages(currentPostId);
             }
         };
+
+        // const handleLoad = async (event: Event) => {
+        //     console.log('Page rafraîchie', event);
+        //     if (!isCapturing) {
+        //         console.log('Page rafraîchie');
+        //         setIsCapturing(true);
+        //         await new Promise((resolve) => setTimeout(resolve, 1500)); // Delay of 4,5 second
+        //         captureMultipleImages(currentPostId);
+        //     }
+        // };
 
         window.addEventListener('wheel', handleScrollDown);
-
         return () => {
             window.removeEventListener('wheel', handleScrollDown);
+            // window.removeEventListener('load', handleLoad);
         };
-    }, []);
+    }, [isCapturing, currentPostId]);
 
-    const captureMultipleImages = async () => {
-        let i = 0;
-        for (i = 0; i < 10; i++) {
-            captureImage();
-            await new Promise((resolve) => setTimeout(resolve, 350));
+    const captureMultipleImages = async (postId: string | null) => {
+        if (!postId) return;
 
+        const images: string[] = [];
+        for (let i = 0; i < 20; i++) {
+            const imageDataUrl = captureImage();
+            if (imageDataUrl) {
+                images.push(imageDataUrl.replace(/^data:image\/jpeg;base64,/, ''));
+            }
+            await new Promise((resolve) => setTimeout(resolve, 100));
         }
+        setImageList(images);
+        console.log(imageList);
+        await postImages(images, postId);
+        setIsCapturing(false);
         if (intervalRef.current) {
             window.clearInterval(intervalRef.current);
         }
     };
 
-    const captureImage = () => {
+    const captureImage = (): string | null => {
         if (videoRef.current && canvasRef.current) {
             const video = videoRef.current;
             const canvas = canvasRef.current;
@@ -96,8 +104,19 @@ const CameraCapture = () => {
                 const imageDataUrl = canvas.toDataURL('image/jpeg');
                 setCapturedImage(imageDataUrl);
                 setImageCount((prevCount) => prevCount + 1);
-                console.log(`Image ${imageCount + 1}: ${imageDataUrl}`); // Log the base64 image with count
+                return imageDataUrl;
             }
+        }
+        return null;
+    };
+
+    const postImages = async (images: string[], postId: string) => {
+        try {
+            const res = await axios.post('http://localhost:5050/score-batch-maximum', { image: images, postId });
+            console.log('Images successfully analyzed', res.data.result["most_prevalent_emotion"]);
+            onEmotionDetected(res.data.result["most_prevalent_emotion"]);
+        } catch (error) {
+            console.error('Error posting images:', error);
         }
     };
 

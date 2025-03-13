@@ -1,6 +1,6 @@
 .camera-capture {
     position: absolute;
-    top: 500px;
+    top: 50px;
     right: 20px;
     z-index: 1000;
     border-radius: 8px;
@@ -9,7 +9,7 @@
 }
 
 .camera-video {
-    display: none; /* Cacher la vidéo car nous affichons seulement les captures */
+    display: none; /* Make the video visible for debugging */
 }
 
 .captured-image-container {

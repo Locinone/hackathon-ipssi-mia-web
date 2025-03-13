@@ -7,3 +7,12 @@ export interface ApiResponse<T> {
     message?: string;
     data: T | null;
 }
+
+export interface Post {
+    _id?: string;
+    title: string;
+    content: string;
+    // ...other properties...
+    isLiked?: boolean;
+    isDisliked?: boolean;
+}
