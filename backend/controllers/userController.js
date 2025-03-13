@@ -214,21 +214,49 @@ const updateUser = async (req, res) => {
 };
 
 const deleteUser = async (req, res) => {
-  const userId = req.user.id;
   try {
-    if (req.params.id !== userId) {
-      return res
-        .status(403)
-        .send("Vous n'êtes pas autorisé à supprimer cet utilisateur");
+    const userId = req.user.id;
+
+    // Si un ID est fourni dans les paramètres, vérifier les autorisations
+    if (req.params.id && req.params.id !== userId) {
+      // Seul un admin peut supprimer un autre utilisateur
+      if (req.user.role !== "admin") {
+        return jsonResponse(res, "Vous n'êtes pas autorisé à supprimer cet utilisateur", 403, null);
+      }
+
+      // Supprimer l'utilisateur spécifié
+      const user = await User.findByIdAndDelete(req.params.id);
+      if (!user) {
+        return jsonResponse(res, "Utilisateur introuvable", 404, null);
+      }
+
+      return jsonResponse(res, "Utilisateur supprimé par l'administrateur", 200, null);
     }
 
-    const user = await User.findByIdAndDelete(req.params.id);
+    // Suppression de son propre compte
+    console.log(`Suppression du compte utilisateur: ${userId}`);
+    const user = await User.findByIdAndDelete(userId);
+
     if (!user) {
-      return res.status(404).send({ error: "Utilisateur introuvable" });
+      return jsonResponse(res, "Utilisateur introuvable", 404, null);
     }
-    jsonResponse(res, "Utilisateur supprimé", 200, null);
+
+    // Nettoyer les références à cet utilisateur dans d'autres collections si nécessaire
+    // Par exemple, supprimer les abonnements et abonnés
+    await User.updateMany(
+      { followers: userId },
+      { $pull: { followers: userId } }
+    );
+
+    await User.updateMany(
+      { following: userId },
+      { $pull: { following: userId } }
+    );
+
+    return jsonResponse(res, "Votre compte a été supprimé avec succès", 200, null);
   } catch (error) {
-    jsonResponse(res, error.message, 500, null);
+    console.error("Erreur lors de la suppression de l'utilisateur:", error);
+    return jsonResponse(res, error.message, 500, null);
   }
 };
 
@@ -241,13 +269,34 @@ const getCurrentUser = async (req, res) => {
 };
 
 const getUserProfile = async (req, res) => {
+
+  const userId = req.user.id;
   try {
     const { username } = req.params;
     const user = await User.findOne({ username }).select('-password');
     if (!user) {
       return jsonResponse(res, 'Utilisateur introuvable', 404, null);
     }
-    jsonResponse(res, 'Profil utilisateur récupéré', 200, user);
+    console.log(`Vérification des relations pour l'utilisateur: ${userId}`);
+    if (userId) {
+      // Convertir les ObjectId en chaînes pour la comparaison
+      const userIdStr = userId.toString();
+
+      // Vérifier si l'utilisateur connecté suit ce profil
+      const isFollowing = user.followers.some(follower =>
+        follower.toString() === userIdStr
+      );
+
+      // Vérifier si ce profil suit l'utilisateur connecté  
+      const isFollowed = user.following.some(follow =>
+        follow.toString() === userIdStr
+      );
+
+      return jsonResponse(res, 'Profil utilisateur récupéré', 200, { ...user.toObject(), isFollowing: isFollowing ? true : false, isFollowed: isFollowed ? true : false });
+    } else {
+      jsonResponse(res, 'Profil utilisateur récupéré', 200, user);
+
+    }
   } catch (error) {
     jsonResponse(res, error.message, 500, null);
   }

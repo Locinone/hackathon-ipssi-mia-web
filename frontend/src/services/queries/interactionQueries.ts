@@ -253,3 +253,27 @@ export const useUnfollowUser = () => {
         },
     });
 };
+
+export const useGetUserRetweets = (userId?: string) => {
+    return useQuery({
+        queryKey: ['retweets', userId],
+        queryFn: async () => {
+            console.log(`Récupération des retweets de l'utilisateur ${userId}...`);
+            try {
+                if (!userId) {
+                    console.log('Aucun ID utilisateur fourni pour récupérer les retweets');
+                    return [];
+                }
+                const response = await interactionService.getUserRetweets(userId);
+                console.log('Retweets récupérés avec succès:', response);
+                return response;
+            } catch (error) {
+                console.error('Erreur lors de la récupération des retweets:', error);
+                throw error;
+            }
+        },
+        enabled: !!userId,
+        staleTime: 1000 * 60, // 1 minute
+        retry: 1,
+    });
+};
