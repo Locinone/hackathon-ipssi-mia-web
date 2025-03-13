@@ -52,20 +52,32 @@ def score_image_batch_maximum_endpoint():
         if 'image' not in data:
             return jsonify({'error': 'No images provided'}), 400
         image_batch = data['image']
-        max_confidence = 0
-        max_confidence_emotion = None
+
+        # Dictionnaire pour compter les occurrences de chaque émotion
+        emotion_count = {}
+
+        # Boucle à travers les images du batch
         for image in image_batch:
-            cur_score = score_image(image)
-            confidence = float(cur_score['confidence'])
-            emotion = cur_score['emotion']
-            if confidence > max_confidence:
-                max_confidence = confidence
-                max_confidence_emotion = emotion
-        result_score['max_confidence'] = max_confidence
-        result_score['max_confidence_emotion'] = max_confidence_emotion
+            cur_score = score_image(image)  # Score de l'image
+            emotion = cur_score['emotion']  # L'émotion prédite
+
+            # Comptabiliser l'émotion dans le dictionnaire
+            if emotion in emotion_count:
+                emotion_count[emotion] += 1
+            else:
+                emotion_count[emotion] = 1
+
+        # Trouver l'émotion la plus fréquemment prédite
+        most_prevalent_emotion = max(emotion_count, key=emotion_count.get)
+
+        # Résultat final avec l'émotion la plus courante
+        result_score['most_prevalent_emotion'] = most_prevalent_emotion
+        result_score['emotion_count'] = emotion_count  # Ajoute aussi le count des émotions pour info
+
         return jsonify({'result': result_score})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 
 if __name__ == '__main__':

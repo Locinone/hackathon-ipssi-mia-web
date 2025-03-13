@@ -15,6 +15,8 @@ import { useColorStore } from '@/stores/colorStore';
 
 import NotificationPanel from '../Notifications/NotificationPanel';
 import CreatePostForm from './CreatePostForm';
+import RechercheAvancee from './RechercheAvancee';
+import Trending from './Trending';
 
 interface NavbarProps {
     onPageChange?: (page: string) => void;
@@ -115,10 +117,15 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
     const [showNotificationMenu, setShowNotificationMenu] = useState(false);
     const [activePath, setActivePath] = useState('');
     const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+    const [isTrendingOpen, setIsTrendingOpen] = useState(false);
+    const [onClickSearch, setOnClickSearch] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
-    const { user } = useAuthStore();
     const createPostRef = useRef<HTMLDivElement>(null);
+    const trendingRef = useRef<HTMLDivElement>(null);
+    const userMenuRef = useRef<HTMLDivElement>(null);
+    const searchRef = useRef<HTMLDivElement>(null);
+    const { user } = useAuthStore();
     const notificationRef = useRef<HTMLDivElement>(null);
     const { color1, color2 } = useColorStore();
     const { mutate: logout, isPending: isLoggingOut } = useLogoutUser();
@@ -149,6 +156,15 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                 showNotificationMenu
             ) {
                 setShowNotificationMenu(false);
+            }
+            if (trendingRef.current && !trendingRef.current.contains(event.target as Node)) {
+                setIsTrendingOpen(false);
+            }
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+                setShowUserMenu(false);
+            }
+            if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+                setOnClickSearch(false);
             }
         };
 
@@ -201,11 +217,11 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                         TakeIt
                     </motion.h1>
                 </div>
-                <div className="flex flex-row justify-between gap-10">
+                <div className="relative flex flex-row justify-between gap-10">
                     <motion.form
                         onSubmit={handleSearchSubmit}
-                        whileHover={{ scale: 1.02 }}
-                        className="flex flex-row justify-between items-center gap-2 py-2 px-4 rounded-full text-white border-white border-2 text-lg md:text-2xl"
+                        onClick={() => setOnClickSearch(true)}
+                        className="relative flex flex-row justify-between items-center gap-2 py-2 px-4 rounded-full text-white border-white border-2 text-lg md:text-2xl"
                     >
                         <input
                             type="text"
@@ -217,6 +233,18 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                         <button type="submit">
                             <Search size={24} />
                         </button>
+                        {onClickSearch && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.2 }}
+                                className="absolute top-24 right-0 w-full z-20"
+                                ref={searchRef}
+                            >
+                                <RechercheAvancee onClose={() => setOnClickSearch(false)} />
+                            </motion.div>
+                        )}
                     </motion.form>
                     <motion.button
                         whileHover={{ scale: 1.02 }}
@@ -226,7 +254,7 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                         <Plus size={24} />
                     </motion.button>
                 </div>
-                <div className="flex flex-row justify-between items-center gap-10">
+                <div className="relative flex flex-row justify-between items-center gap-10">
                     <div className="flex flex-row justify-between items-center gap-10 py-2 px-4 rounded-full text-white text-lg md:text-2xl">
                         <motion.div
                             whileHover={{ scale: 1.1 }}
@@ -251,9 +279,11 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                                     : 'text-white'
                             }`}
                         >
-                            <Link to="/trending">
-                                <Flame size={24} className="cursor-pointer" />
-                            </Link>
+                            <Flame
+                                size={24}
+                                className="cursor-pointer"
+                                onClick={() => setIsTrendingOpen(!isTrendingOpen)}
+                            />
                         </motion.div>
                         <motion.div
                             whileHover={{ scale: 1.1 }}
@@ -289,6 +319,7 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="absolute right-0 mt-2 w-48 bg-black/80 backdrop-blur-md rounded-lg shadow-lg py-2 z-20"
+                                ref={userMenuRef}
                             >
                                 <motion.button
                                     whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
@@ -309,6 +340,23 @@ const Navbar: React.FC<NavbarProps> = ({ onPageChange }) => {
                             </motion.div>
                         )}
                     </div>
+                    {isTrendingOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.2 }}
+                            className="absolute top-24 right-0 w-full z-20"
+                            ref={trendingRef}
+                        >
+                            <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <Trending />
+                            </motion.div>
+                        </motion.div>
+                    )}
                 </div>
             </nav>
 

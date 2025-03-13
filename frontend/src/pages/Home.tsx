@@ -1,5 +1,4 @@
 import Loader from '@/components/ui/Loader';
-
 import Posts from '../components/Posts/Posts';
 import { useGetPosts } from '../services/queries/postQueries';
 
@@ -9,10 +8,15 @@ const Home = () => {
     if (isLoading) return <Loader />;
     if (error) return <div>Error: {error.message}</div>;
 
-    if (posts?.data && posts.data.length > 0) {
-        return <Posts userProfile={false} postsData={posts.data} />;
-    }
-    return <div>No posts found</div>;
+    return (
+        <div>
+            {posts?.data && posts.data.length > 0 ? (
+                <Posts userProfile={false} postsData={posts.data} />
+            ) : (
+                <div>No posts found</div>
+            )}
+        </div>
+    );
 };
 
 export default Home;

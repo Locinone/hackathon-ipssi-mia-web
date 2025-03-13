@@ -25,13 +25,35 @@ class PostService {
         return response;
     }
 
-    public async getPosts(): Promise<ApiResponse<Post[]>> {
-        const response = await api.fetchRequest(`${this.apiUrl}/`, 'GET', null, true);
+    public async getPosts(
+        h: string | undefined,
+        u: string | undefined,
+        s: string | undefined,
+        sd: string | undefined,
+        ed: string | undefined,
+        order: string | undefined
+    ): Promise<ApiResponse<Post[]>> {
+        let finalUrl = `${this.apiUrl}`;
+        const params = new URLSearchParams();
+        if (h) params.append('h', h);
+        if (u) params.append('u', u);
+        if (s) params.append('s', s);
+        if (sd) params.append('sd', sd);
+        if (ed) params.append('ed', ed);
+        if (order) params.append('order', order);
+        if (params.toString()) finalUrl += `?${params.toString()}`;
+
+        const response = await api.fetchRequest(finalUrl, 'GET', null, true);
         return response;
     }
 
     public async getPostsByUserId(userId: string): Promise<ApiResponse<Post[]>> {
         const response = await api.fetchRequest(`${this.apiUrl}/user/${userId}`, 'GET', null, true);
+        return response;
+    }
+
+    public async getPostById(id: string): Promise<ApiResponse<Post>> {
+        const response = await api.fetchRequest(`${this.apiUrl}/${id}`, 'GET', null, true);
         return response;
     }
 }

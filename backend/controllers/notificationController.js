@@ -1,4 +1,5 @@
 const Notification = require("../models/Notification");
+const jsonResponse = require("../utils/jsonResponse");
 
 // Récupérer les notifications
 const getNotifications = async (req, res) => {
@@ -40,11 +41,9 @@ const markAsRead = async (req, res) => {
       );
     }, 86400000);
 
-    res
-      .status(200)
-      .send("Notification marquée comme lue et programmée pour suppression");
+    jsonResponse(res, "Notification marquée comme lue et programmée pour suppression", 200, notification);
   } catch (error) {
-    res.status(500).send({ message: error.message });
+    jsonResponse(res, error.message, 500, null);
   }
 };
 
