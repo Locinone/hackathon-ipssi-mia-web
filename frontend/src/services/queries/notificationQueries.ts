@@ -50,3 +50,20 @@ export const useTestNotification = () => {
         },
     });
 };
+
+// Mutation pour supprimer une notification
+export const useDeleteNotification = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (notificationId: string) =>
+            notificationService.deleteNotification(notificationId),
+        onSuccess: () => {
+            // Invalider la requête pour forcer un rafraîchissement des notifications
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        },
+        onError: (error: any) => {
+            toast.error(error.message || 'Erreur lors de la suppression de la notification');
+        },
+    });
+};
