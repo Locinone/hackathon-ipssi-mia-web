@@ -21,10 +21,11 @@ router.post("/register",
 router.get("/getusers", userController.getUsers);
 router.put("/update", authenticateJWT, zodValidator(updateUserSchema, 'body'), userController.updateUser);
 router.delete("/delete/:id", authenticateJWT, verifyAccess("admin"), userController.deleteUser);
+router.delete("/delete", authenticateJWT, userController.deleteUser);
 router.get("/me", authenticateJWT, userController.getCurrentUser);
 router.post("/follow/:id", authenticateJWT, userController.followUser);
 router.post("/unfollow/:id", authenticateJWT, userController.unfollowUser);
-router.get('/profile/:username', userController.getUserProfile);
+router.get('/profile/:username', authenticateJWT, userController.getUserProfile);
 
 // Nouvelles routes pour récupérer les abonnés et les abonnements
 router.get('/followers/:userId', userController.getUserFollowers);

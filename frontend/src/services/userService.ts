@@ -11,25 +11,28 @@ class UserService {
 
     public async registerUser(data: FormData): Promise<ApiResponse<User>> {
         const response = await api.fetchMultipartRequest(`${this.apiUrl}/register`, 'POST', data);
-        return response as ApiResponse<User>;
+        return response;
     }
 
-    public async loginUser(
-        data: LoginFormData
-    ): Promise<ApiResponse<{ user: User; token: string; refreshToken: string }>> {
+    public async loginUser(data: LoginFormData): Promise<ApiResponse<User>> {
         const response = await api.fetchRequest(`${this.apiUrl}/login`, 'POST', data);
-        return response as ApiResponse<{ user: User; token: string; refreshToken: string }>;
+        return response;
     }
 
     public async getCurrentUser(): Promise<ApiResponse<User>> {
-        const response = await api.fetchRequest(`${this.apiUrl}/me`, 'GET');
-        return response as ApiResponse<User>;
+        const response = await api.fetchRequest(`${this.apiUrl}/me`, 'GET', null, true);
+        return response;
     }
 
     public async getUserProfile(username: string): Promise<ApiResponse<User>> {
         try {
             console.log(`Service - Récupération du profil pour: ${username}`);
-            const response = await api.fetchRequest(`${this.apiUrl}/profile/${username}`, 'GET');
+            const response = await api.fetchRequest(
+                `${this.apiUrl}/profile/${username}`,
+                'GET',
+                null,
+                true
+            );
             console.log(`Service - Réponse pour ${username}:`, JSON.stringify(response));
 
             // Vérifier si la réponse a le format attendu
@@ -43,7 +46,7 @@ class UserService {
                 };
             }
 
-            return response as ApiResponse<User>;
+            return response;
         } catch (error) {
             console.error(`Service - Erreur lors de la récupération du profil ${username}:`, error);
             throw error;
@@ -53,8 +56,13 @@ class UserService {
     public async getUserFollowers(userId: string): Promise<ApiResponse<User[]>> {
         try {
             console.log(`Service - Récupération des abonnés pour l'utilisateur: ${userId}`);
-            const response = await api.fetchRequest(`${this.apiUrl}/followers/${userId}`, 'GET');
-            return response as ApiResponse<User[]>;
+            const response = await api.fetchRequest(
+                `${this.apiUrl}/followers/${userId}`,
+                'GET',
+                null,
+                true
+            );
+            return response;
         } catch (error) {
             console.error(`Service - Erreur lors de la récupération des abonnés:`, error);
             return {
@@ -68,8 +76,13 @@ class UserService {
     public async getUserFollowing(userId: string): Promise<ApiResponse<User[]>> {
         try {
             console.log(`Service - Récupération des abonnements pour l'utilisateur: ${userId}`);
-            const response = await api.fetchRequest(`${this.apiUrl}/following/${userId}`, 'GET');
-            return response as ApiResponse<User[]>;
+            const response = await api.fetchRequest(
+                `${this.apiUrl}/following/${userId}`,
+                'GET',
+                null,
+                true
+            );
+            return response;
         } catch (error) {
             console.error(`Service - Erreur lors de la récupération des abonnements:`, error);
             return {
@@ -80,9 +93,21 @@ class UserService {
         }
     }
 
-    public async logoutUser(): Promise<ApiResponse<void>> {
+    public async logoutUser(): Promise<ApiResponse<User>> {
         const response = await api.fetchRequest(`${this.apiUrl}/logout`, 'POST');
-        return response as ApiResponse<void>;
+        return response;
+    }
+
+    public async deleteUser(): Promise<ApiResponse<void>> {
+        try {
+            console.log('Service - Suppression du compte utilisateur');
+            const response = await api.fetchRequest(`${this.apiUrl}/delete`, 'DELETE');
+            console.log('Service - Réponse de suppression:', response);
+            return response as ApiResponse<void>;
+        } catch (error) {
+            console.error('Service - Erreur lors de la suppression du compte:', error);
+            throw error;
+        }
     }
 
     public async updateUserProfile(data: Partial<User>): Promise<ApiResponse<User>> {

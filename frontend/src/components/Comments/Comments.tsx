@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
-import { MessageCircle, MoreHorizontal } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 
 import { api } from '../../services/api';
-import { useGetCommentsByUserId } from '../../services/queries/commentQueries';
+import { useGetCommentsByUserId, useReplyToComment } from '../../services/queries/commentQueries';
 import { useUserProfile } from '../../services/queries/useUserProfile';
 import Loader from '../ui/Loader';
 
@@ -14,13 +14,16 @@ interface Comment {
     content: string;
     author: {
         _id: string;
-        name: string;
+        name?: string;
         username: string;
-        image: string;
+        image?: string;
+        email?: string;
     };
+    post?: string;
+    parentComment?: string;
     createdAt?: string;
     likes?: any[];
-    replies?: any[];
+    replies?: Comment[];
     reposts?: number;
 }
 
@@ -73,10 +76,69 @@ const mockComments: Comment[] = [
 
 interface CommentCardProps {
     comment: Comment;
+    setShowReplies: (show: boolean) => void;
 }
 
-const CommentCard: React.FC<CommentCardProps> = ({ comment }) => {
+// Composant pour le formulaire de réponse
+interface ReplyFormProps {
+    commentId: string;
+    postId: string;
+    onReplyAdded: () => void;
+    onCancel: () => void;
+}
+
+const ReplyForm: React.FC<ReplyFormProps> = ({ commentId, onReplyAdded, onCancel }) => {
+    const [content, setContent] = useState('');
+    const { mutate: replyToComment, isPending } = useReplyToComment();
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!content.trim()) return;
+
+        replyToComment(
+            { content, commentId },
+            {
+                onSuccess: () => {
+                    setContent('');
+                    onReplyAdded();
+                },
+            }
+        );
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="mt-3 mb-4">
+            <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Écrire une réponse..."
+                className="w-full p-2 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500"
+                rows={2}
+            />
+            <div className="flex justify-end mt-2 space-x-2">
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="px-3 py-1 text-sm text-gray-400 hover:text-white"
+                >
+                    Annuler
+                </button>
+                <button
+                    type="submit"
+                    disabled={isPending || !content.trim()}
+                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                    {isPending ? 'Envoi...' : 'Répondre'}
+                </button>
+            </div>
+        </form>
+    );
+};
+
+// Mise à jour du composant CommentCard pour gérer les réponses
+export const CommentCard: React.FC<CommentCardProps> = ({ comment, setShowReplies }) => {
     const baseUrl = api.getUrl();
+    const [showReplyForm, setShowReplyForm] = useState(false);
 
     // Formatage de date natif
     const formatDate = (dateString?: string) => {
@@ -102,6 +164,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment }) => {
 
     // Fonction pour obtenir les initiales du nom
     const getInitials = (name: string) => {
+        if (!name) return '';
         return name
             .split(' ')
             .map((part) => part[0])
@@ -109,26 +172,32 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment }) => {
             .toUpperCase();
     };
 
+    const handleReplyAdded = () => {
+        setShowReplyForm(false);
+    };
+
     return (
-        <div className="bg-black border border-gray-800 rounded-lg p-4 mb-4">
+        <div className="bg-black border border-gray-800 rounded-lg p-4 mb-2">
             <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0">
                     {comment.author.image ? (
                         <img
                             src={`${baseUrl}${comment.author.image}`}
-                            alt={comment.author.name}
+                            alt={comment.author.name || comment.author.username}
                             className="w-10 h-10 rounded-full"
                         />
                     ) : (
                         <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
-                            {getInitials(comment.author.name)}
+                            {getInitials(comment.author.name || comment.author.username)}
                         </div>
                     )}
                 </div>
                 <div className="flex-grow">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-1">
-                            <span className="font-bold text-white">{comment.author.name}</span>
+                            <span className="font-bold text-white">
+                                {comment.author.name || comment.author.username}
+                            </span>
                             <span className="text-gray-500">{comment.author.username}</span>
                             <span className="text-gray-500">·</span>
                             <span className="text-gray-500">{formattedDate}</span>
@@ -137,19 +206,40 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment }) => {
                     <div className="mt-1">
                         <p className="text-white">{comment.content}</p>
                     </div>
-                    <div className="mt-3 flex items-center text-gray-500">
-                        <button className="flex items-center space-x-1 hover:text-blue-500">
+                    <div className="mt-3 flex items-center space-x-4 text-gray-500">
+                        <button
+                            className="flex items-center space-x-1 hover:text-blue-500"
+                            onClick={() => setShowReplyForm(!showReplyForm)}
+                        >
                             <MessageCircle size={16} />
-                            <span>{comment.replies?.length || 0}</span>
+                            <span>Répondre</span>
                         </button>
+                        {comment.replies && comment.replies.length > 0 && (
+                            <button
+                                className="flex items-center space-x-1 hover:text-blue-500"
+                                onClick={() => setShowReplies(true)}
+                            >
+                                <MessageCircle size={16} />
+                                <span>Voir les réponses</span>
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
+
+            {showReplyForm && (
+                <ReplyForm
+                    commentId={comment._id}
+                    postId={comment.post || ''}
+                    onReplyAdded={handleReplyAdded}
+                    onCancel={() => setShowReplyForm(false)}
+                />
+            )}
         </div>
     );
 };
 
-const UserComments: React.FC = () => {
+export const UserComments: React.FC = () => {
     const { username } = useParams();
     const { data: userData } = useUserProfile(username);
     const { data: userComments, isLoading, error } = useGetCommentsByUserId(userData?._id);
@@ -168,28 +258,6 @@ const UserComments: React.FC = () => {
             console.log('Commentaires récupérés:', userComments);
         }
     }, [userComments]);
-
-    // Afficher les données mockées pour visualisation
-    if (showMockData) {
-        return (
-            <div className="space-y-4">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-white text-lg font-semibold">
-                        Commentaires (Données de test)
-                    </h2>
-                    <button
-                        className="text-xs text-gray-400 hover:text-blue-500"
-                        onClick={() => setShowMockData(false)}
-                    >
-                        Masquer les données de test
-                    </button>
-                </div>
-                {mockComments.map((comment) => (
-                    <CommentCard key={comment._id} comment={comment} />
-                ))}
-            </div>
-        );
-    }
 
     if (isLoading) {
         return <Loader />;
@@ -232,10 +300,8 @@ const UserComments: React.FC = () => {
                 Commentaires ({userComments.data.length})
             </h2>
             {userComments.data.map((comment) => (
-                <CommentCard key={comment._id} comment={comment} />
+                <CommentCard key={comment._id} comment={comment} setShowReplies={() => {}} />
             ))}
         </div>
     );
 };
-
-export default UserComments;

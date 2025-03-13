@@ -1,3 +1,5 @@
+import { CommentSchema } from '@/schemas/postSchemas';
+
 import { toast } from 'react-toastify';
 
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -6,7 +8,7 @@ import { commentService } from '../commentService';
 
 export const useCreateComment = () => {
     return useMutation({
-        mutationFn: async (data: FormData) => {
+        mutationFn: async (data: CommentSchema) => {
             const response = await commentService.createComment(data);
             return response;
         },
@@ -64,5 +66,33 @@ export const useDeleteComment = () => {
         onError: (error: any) => {
             toast.error(error.message || 'Erreur lors de la suppression du commentaire');
         },
+    });
+};
+
+export const useReplyToComment = () => {
+    return useMutation({
+        mutationFn: async (data: { content: string; commentId: string }) => {
+            const response = await commentService.replyToComment(data);
+            return response;
+        },
+        onSuccess: () => {
+            toast.success('Réponse ajoutée avec succès');
+        },
+        onError: (error: any) => {
+            toast.error(error.message || "Erreur lors de l'ajout de la réponse");
+        },
+    });
+};
+
+export const useGetRepliesByComment = (commentId: string | undefined) => {
+    return useQuery({
+        queryKey: ['replies', 'comment', commentId],
+        queryFn: async () => {
+            if (!commentId) {
+                return { success: true, message: 'Aucun commentaire spécifié', data: [] };
+            }
+            return await commentService.getRepliesByComment(commentId);
+        },
+        enabled: !!commentId, // La requête ne s'exécute que si commentId existe
     });
 };

@@ -659,7 +659,8 @@ const followUser = async (req, res) => {
 const unfollowUser = async (req, res) => {
     try {
         const { userId } = req.params;
-        const followerId = req.user?.id;
+        const followerId = req.user?.id.toString();
+
 
         const user = await User.findById(userId);
         if (!user) {
@@ -671,6 +672,8 @@ const unfollowUser = async (req, res) => {
             return jsonResponse(res, "Utilisateur introuvable", 404, null);
         }
 
+        console.log(follower.following, userId);
+        console.log(follower.followers, userId);
         if (!follower.following.includes(userId)) {
             return jsonResponse(res, "Vous ne suivez pas cet utilisateur", 400, null);
         }
@@ -682,6 +685,43 @@ const unfollowUser = async (req, res) => {
 
         return jsonResponse(res, "Utilisateur non suivi avec succès", 200, null);
     } catch (error) {
+        return jsonResponse(res, error.message, 500, null);
+    }
+};
+
+const getRetweetsByUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        console.log(`Récupération des retweets pour l'utilisateur: ${userId}`);
+
+        // Vérifier que l'ID utilisateur est valide
+        if (!userId || userId === 'undefined') {
+            console.error('ID utilisateur invalide:', userId);
+            return jsonResponse(res, 'ID utilisateur invalide', 400, null);
+        }
+
+        // Récupérer les retweets pour cet utilisateur
+        const retweets = await Share.find({ user: userId })
+            .populate({
+                path: 'post',
+                populate: {
+                    path: 'author',
+                    select: 'name username image'
+                }
+            })
+            .populate('user', 'name username image')
+            .sort({ createdAt: -1 });
+
+        console.log(`${retweets.length} retweets trouvés pour l'utilisateur ${userId}`);
+
+        if (!retweets || retweets.length === 0) {
+            return jsonResponse(res, 'Aucun retweet trouvé pour cet utilisateur', 200, []);
+        }
+
+        return jsonResponse(res, 'Retweets récupérés avec succès', 200, retweets);
+    } catch (error) {
+        console.error('Erreur lors de la récupération des retweets:', error);
         return jsonResponse(res, error.message, 500, null);
     }
 };
@@ -698,6 +738,7 @@ module.exports = {
     answerComment,
     createRetweet,
     deleteRetweet,
+    getRetweetsByUser,
     createBookmark,
     deleteBookmark,
     getUserBookmarks,

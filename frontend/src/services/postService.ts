@@ -31,8 +31,8 @@ class PostService {
     }
 
     public async getPostsByUserId(userId: string): Promise<ApiResponse<Post[]>> {
-        const response = await api.fetchRequest(`${this.apiUrl}/user/${userId}`, 'GET');
-        return response as ApiResponse<Post[]>;
+        const response = await api.fetchRequest(`${this.apiUrl}/user/${userId}`, 'GET', null, true);
+        return response;
     }
 }
 

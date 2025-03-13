@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import Navbar from './components/Navbar/Navbar';
 import Loader from './components/ui/Loader';
+import { WebSocketProvider } from './context/WebSocketContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
@@ -35,12 +36,28 @@ function App() {
         autoLogin();
     }, [autoLogin]);
 
+    // Afficher un toast pour indiquer l'état de la connexion WebSocket (pour le débogage)
+    useEffect(() => {
+        if (isAuthenticated) {
+            toast.info('Connexion aux notifications en cours...', {
+                autoClose: 2000,
+                position: 'bottom-right',
+            });
+        }
+    }, [isAuthenticated]);
+
     if (loading) return <Loader />;
 
     return (
         <Router>
-            {isAuthenticated && <Navbar />}
-            {isAuthenticated ? <ProtectedRoutes /> : <PublicRoutes />}
+            {isAuthenticated ? (
+                <WebSocketProvider>
+                    <Navbar />
+                    <ProtectedRoutes />
+                </WebSocketProvider>
+            ) : (
+                <PublicRoutes />
+            )}
             <ToastContainer
                 position="top-right"
                 autoClose={3000}

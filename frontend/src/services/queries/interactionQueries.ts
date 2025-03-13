@@ -232,24 +232,56 @@ export const useGetUserBookmarks = () => {
 // Followers
 export const useFollowUser = () => {
     return useMutation({
-        mutationFn: (userId: string) => interactionService.followUser(userId),
-        onSuccess: () => {
-            toast.success('Utilisateur suivi avec succès');
+        mutationFn: (userId: string) => {
+            console.log(`Mutation - Suivre l'utilisateur: ${userId}`);
+            return interactionService.followUser(userId);
+        },
+        onSuccess: (data, userId) => {
+            toast.success('Vous suivez maintenant cet utilisateur');
         },
         onError: (error: any) => {
-            toast.error(error.message || "Erreur lors de la suivi de l'utilisateur");
+            console.error('Mutation - Erreur lors du suivi:', error);
+            toast.error(error.message || "Erreur lors du suivi de l'utilisateur");
         },
     });
 };
 
 export const useUnfollowUser = () => {
     return useMutation({
-        mutationFn: (userId: string) => interactionService.unfollowUser(userId),
-        onSuccess: () => {
-            toast.success('Utilisateur non suivi avec succès');
+        mutationFn: (userId: string) => {
+            console.log(`Mutation - Ne plus suivre l'utilisateur: ${userId}`);
+            return interactionService.unfollowUser(userId);
+        },
+        onSuccess: (data, userId) => {
+            toast.success('Vous ne suivez plus cet utilisateur');
         },
         onError: (error: any) => {
-            toast.error(error.message || "Erreur lors de la non suivi de l'utilisateur");
+            console.error('Mutation - Erreur lors du désabonnement:', error);
+            toast.error(error.message || 'Erreur lors du désabonnement');
         },
+    });
+};
+
+export const useGetUserRetweets = (userId?: string) => {
+    return useQuery({
+        queryKey: ['retweets', userId],
+        queryFn: async () => {
+            console.log(`Récupération des retweets de l'utilisateur ${userId}...`);
+            try {
+                if (!userId) {
+                    console.log('Aucun ID utilisateur fourni pour récupérer les retweets');
+                    return [];
+                }
+                const response = await interactionService.getUserRetweets(userId);
+                console.log('Retweets récupérés avec succès:', response);
+                return response;
+            } catch (error) {
+                console.error('Erreur lors de la récupération des retweets:', error);
+                throw error;
+            }
+        },
+        enabled: !!userId,
+        staleTime: 1000 * 60, // 1 minute
+        retry: 1,
     });
 };

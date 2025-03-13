@@ -37,3 +37,10 @@ export interface FileValidationResult {
     valid: boolean;
     error?: string;
 }
+
+export interface Comment {
+    _id: string;
+    content: string;
+    author: User;
+    createdAt: string;
+}
