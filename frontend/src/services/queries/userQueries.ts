@@ -98,3 +98,32 @@ export const useLogoutUser = () => {
         },
     });
 };
+
+export const useDeleteUser = () => {
+    const { logout } = useAuthStore();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async () => {
+            const response = await userService.deleteUser();
+            return response;
+        },
+        onSuccess: () => {
+            Cookies.remove('accessToken');
+            Cookies.remove('refreshToken');
+            logout();
+
+            // Invalider toutes les requêtes liées à l'utilisateur
+            queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+            queryClient.clear();
+
+            toast.success('Votre compte a été supprimé avec succès');
+
+            // Rediriger vers la page d'accueil
+            window.location.href = '/';
+        },
+        onError: (error: any) => {
+            toast.error(error.message || 'Erreur lors de la suppression du compte');
+        },
+    });
+};

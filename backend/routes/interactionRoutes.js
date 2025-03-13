@@ -22,6 +22,7 @@ router.post("/comments/:commentId/answer", authenticateJWT, interactionControlle
 // Routes pour les retweets
 router.post("/retweets/:postId/create", authenticateJWT, interactionController.createRetweet);
 router.delete("/retweets/:postId/delete", authenticateJWT, interactionController.deleteRetweet);
+router.get("/retweets/user/:userId", interactionController.getRetweetsByUser);
 
 // Routes pour les signets (bookmarks)
 router.post("/bookmarks/:postId/create", authenticateJWT, interactionController.createBookmark);

@@ -154,6 +154,32 @@ class InteractionService {
         );
         return response.data;
     }
+
+    public async getUserRetweets(userId: string) {
+        try {
+            console.log(`Récupération des retweets pour l'utilisateur: ${userId}`);
+            const response = await api.fetchRequest(
+                `${this.apiUrl}/retweets/user/${userId}`,
+                'GET',
+                null
+            );
+
+            if (!response.success) {
+                console.error(
+                    'Service - Erreur lors de la récupération des retweets:',
+                    response.message
+                );
+                throw new Error(response.message || 'Erreur lors de la récupération des retweets');
+            }
+
+            const retweets = Array.isArray(response.data) ? response.data : [];
+            console.log('Service - Retweets récupérés:', retweets.length, 'éléments');
+            return retweets;
+        } catch (error) {
+            console.error('Service - Exception lors de la récupération des retweets:', error);
+            throw error;
+        }
+    }
 }
 
 export const interactionService = new InteractionService();

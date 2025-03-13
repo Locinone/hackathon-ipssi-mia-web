@@ -85,6 +85,18 @@ class UserService {
         return response as ApiResponse<void>;
     }
 
+    public async deleteUser(): Promise<ApiResponse<void>> {
+        try {
+            console.log('Service - Suppression du compte utilisateur');
+            const response = await api.fetchRequest(`${this.apiUrl}/delete`, 'DELETE');
+            console.log('Service - Réponse de suppression:', response);
+            return response as ApiResponse<void>;
+        } catch (error) {
+            console.error('Service - Erreur lors de la suppression du compte:', error);
+            throw error;
+        }
+    }
+
     public async updateUserProfile(data: Partial<User>): Promise<ApiResponse<User>> {
         try {
             console.log('Service - Données envoyées:', JSON.stringify(data));
