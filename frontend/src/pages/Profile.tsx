@@ -43,6 +43,7 @@ const Profile = () => {
         biography: '',
         location: '',
         link: '',
+        acceptNotification: false,
     });
 
     // Récupérer l'utilisateur connecté
@@ -120,6 +121,7 @@ const Profile = () => {
                 biography: userData.biography || '',
                 location: userData.location || '',
                 link: userData.link || '',
+                acceptNotification: userData.acceptNotification || false,
             });
         }
     }, [userData]);
@@ -131,7 +133,13 @@ const Profile = () => {
     }, [isModalOpen, formData]);
 
     const handleSubmit = async (updatedFormData: typeof formData) => {
-        const parsedData = updateUserSchema.safeParse(updatedFormData);
+        // Assurez-vous que acceptNotification est inclus dans les données
+        const dataToValidate = {
+            ...updatedFormData,
+            acceptNotification: updatedFormData.acceptNotification,
+        };
+
+        const parsedData = updateUserSchema.safeParse(dataToValidate);
 
         if (!parsedData.success) {
             console.error('Erreur de validation:', parsedData.error.format());
@@ -157,6 +165,7 @@ const Profile = () => {
                             biography: updatedUserData.biography || '',
                             location: updatedUserData.location || '',
                             link: updatedUserData.link || '',
+                            acceptNotification: updatedUserData.acceptNotification || false,
                         });
 
                         // Afficher un message de succès détaillé
@@ -544,8 +553,8 @@ const Profile = () => {
                                                             className="text-sm px-2 py-1"
                                                             onFollowStatusChange={(isFollowing) => {
                                                                 // Rafraîchir les listes après changement de statut
-                                                                refetchFollowing();
                                                                 refetchFollowers();
+                                                                refetchFollowing();
                                                             }}
                                                         />
                                                     )}

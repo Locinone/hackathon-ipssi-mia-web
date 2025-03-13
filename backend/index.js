@@ -17,6 +17,7 @@ const scoreThemeRoutes = require("./routes/scoreThemeRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const interactionRoutes = require('./routes/interactionRoutes');
 const Notification = require("./models/Notification");
+const User = require("./models/User");
 const NotificationManager = require("./utils/notificationManager");
 const logger = require("./utils/logger");
 
@@ -136,10 +137,52 @@ io.on("connection", async (socket) => {
       }
     });
 
-    // Événement de test
+    // Écouter les événements de suppression de notification
+    socket.on("delete-notification", async (data) => {
+      try {
+        if (!data.notificationId) {
+          console.error("❌ ID de notification manquant pour la suppression");
+          return;
+        }
+
+        console.log(`🗑️ Suppression de notification: ${data.notificationId} par l'utilisateur ${userId}`);
+
+        // Vérifier que la notification existe
+        const notification = await Notification.findById(data.notificationId);
+
+        if (!notification) {
+          console.log(`Notification ${data.notificationId} non trouvée`);
+          return;
+        }
+
+        // Vérifier que l'utilisateur est bien le destinataire
+        if (notification.receiver.toString() !== userId.toString()) {
+          console.log(`L'utilisateur ${userId} n'est pas autorisé à supprimer la notification ${data.notificationId}`);
+          return;
+        }
+
+        // Supprimer la notification
+        await Notification.findByIdAndDelete(data.notificationId);
+        console.log(`Notification ${data.notificationId} supprimée avec succès via WebSocket`);
+
+        // Informer le client de la suppression
+        io.to(userId).emit("notification-deleted", { _id: data.notificationId });
+      } catch (error) {
+        console.error(`❌ Erreur lors de la suppression de la notification: ${error.message}`);
+      }
+    });
+
+    // Écouter les événements de test
     socket.on("test-notification", async (data) => {
       try {
         console.log("📨 Notification test reçue:", data);
+
+        // Vérifier si l'utilisateur accepte les notifications
+        const user = await User.findById(userId);
+        if (user && user.acceptNotification === false) {
+          console.log(`ℹ️ L'utilisateur ${userId} n'accepte pas les notifications, test ignoré`);
+          return;
+        }
 
         // Créer une notification de test
         const notification = new Notification({

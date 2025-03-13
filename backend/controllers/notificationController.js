@@ -1,4 +1,5 @@
 const Notification = require("../models/Notification");
+const User = require("../models/User");
 const NotificationManager = require("../utils/notificationManager");
 const jsonResponse = require("../utils/jsonResponse");
 
@@ -52,6 +53,14 @@ const markAsRead = async (req, res) => {
 const testNotification = async (req, res) => {
   try {
     const userId = req.user.id;
+
+    // Vérifier si l'utilisateur accepte les notifications
+    const user = await User.findById(userId);
+    if (user && user.acceptNotification === false) {
+      console.log(`ℹ️ L'utilisateur ${userId} n'accepte pas les notifications, test ignoré`);
+      return jsonResponse(res, "Notification non envoyée: l'utilisateur n'accepte pas les notifications", 200, null);
+    }
+
     const io = req.app.get("io");
     const notificationManager = new NotificationManager(io);
 
@@ -74,34 +83,77 @@ const testNotification = async (req, res) => {
 // Supprimer une notification
 const deleteNotification = async (req, res) => {
   try {
-    const userId = req.user.id;
     const { notificationId } = req.params;
+    const userId = req.user.id;
 
     console.log(`Suppression de la notification ${notificationId} par l'utilisateur ${userId}`);
 
-    const notification = await Notification.findById(notificationId);
-
-    if (!notification) {
-      return jsonResponse(res, "Notification introuvable", 404, null);
+    // Vérifier que l'ID est valide
+    if (!notificationId || notificationId.trim() === '') {
+      console.error("ID de notification invalide");
+      return jsonResponse(res, "ID de notification invalide", 400, null);
     }
 
-    // Vérifier que l'utilisateur est bien le destinataire
-    if (notification.receiver.toString() !== userId) {
+    // Vérifier que la notification existe
+    let notification;
+    try {
+      notification = await Notification.findById(notificationId);
+    } catch (err) {
+      console.error(`Erreur lors de la recherche de la notification: ${err.message}`);
+      return jsonResponse(res, "Erreur lors de la recherche de la notification", 500, null);
+    }
+
+    if (!notification) {
+      console.log(`Notification ${notificationId} non trouvée`);
+      // Retourner un succès même si la notification n'existe pas
+      // Cela évite les erreurs côté client si la notification a déjà été supprimée
+      return jsonResponse(res, "Notification déjà supprimée", 200, { _id: notificationId });
+    }
+
+    // Convertir les IDs en chaînes pour une comparaison correcte
+    const receiverId = notification.receiver.toString();
+    const requestUserId = userId.toString();
+
+    console.log(`Comparaison des IDs: notification.receiver=${receiverId}, userId=${requestUserId}`);
+
+    // Vérifier que l'utilisateur est bien le destinataire de la notification
+    if (receiverId !== requestUserId) {
+      console.log(`L'utilisateur ${userId} n'est pas autorisé à supprimer la notification ${notificationId}`);
+      console.log(`ID du destinataire: ${receiverId}, ID de l'utilisateur: ${requestUserId}`);
       return jsonResponse(res, "Vous n'êtes pas autorisé à supprimer cette notification", 403, null);
     }
 
-    await Notification.findByIdAndDelete(notificationId);
+    // Supprimer la notification
+    try {
+      const result = await Notification.findByIdAndDelete(notificationId);
 
-    // Informer le client de la suppression via WebSocket
-    const io = req.app.get("io");
-    if (io) {
-      io.to(userId).emit("notification-deleted", { _id: notificationId });
+      if (!result) {
+        console.log(`Notification ${notificationId} déjà supprimée`);
+        return jsonResponse(res, "Notification déjà supprimée", 200, { _id: notificationId });
+      }
+
+      console.log(`Notification ${notificationId} supprimée avec succès via API REST`);
+    } catch (err) {
+      console.error(`Erreur lors de la suppression de la notification: ${err.message}`);
+      return jsonResponse(res, "Erreur lors de la suppression de la notification", 500, null);
     }
 
-    return jsonResponse(res, "Notification supprimée avec succès", 200, null);
+    // Informer le client de la suppression via WebSocket
+    try {
+      const io = req.app.get("io");
+      if (io) {
+        io.to(userId).emit("notification-deleted", { _id: notificationId });
+        console.log(`Événement notification-deleted émis pour ${userId}`);
+      }
+    } catch (err) {
+      console.error(`Erreur lors de l'émission de l'événement WebSocket: ${err.message}`);
+      // Ne pas échouer la requête si l'émission WebSocket échoue
+    }
+
+    return jsonResponse(res, "Notification supprimée avec succès", 200, { _id: notificationId });
   } catch (error) {
     console.error("Erreur lors de la suppression de la notification:", error);
-    return jsonResponse(res, error.message, 500, null);
+    return jsonResponse(res, error.message || "Erreur interne du serveur", 500, null);
   }
 };
 

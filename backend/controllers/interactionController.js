@@ -656,14 +656,18 @@ const followUser = async (req, res) => {
             return jsonResponse(res, "Utilisateur introuvable", 404, null);
         }
 
-        // Vérifier si l'utilisateur suit déjà la cible
-        if (follower.following.includes(userId)) {
+        // Vérifier si l'utilisateur suit déjà la cible avec conversion explicite en chaîne
+        const isAlreadyFollowing = follower.following.some(id => id.toString() === userId.toString());
+        if (isAlreadyFollowing) {
             return jsonResponse(res, "Vous suivez déjà cet utilisateur", 400, null);
         }
 
         // Ajouter la relation d'abonnement
         follower.following.push(userId);
         user.followers.push(followerId);
+
+        console.log(`Avant sauvegarde - Abonnements de ${follower.username}:`, follower.following.length);
+        console.log(`Avant sauvegarde - Abonnés de ${user.username}:`, user.followers.length);
 
         await follower.save();
         await user.save();
@@ -705,6 +709,7 @@ const unfollowUser = async (req, res) => {
     try {
         const { userId } = req.params;
         const followerId = req.user?.id;
+        console.log("Désabonnement - IDs:", { userId, followerId });
 
         // Vérification que l'utilisateur est bien authentifié
         if (!followerId) {
@@ -729,13 +734,17 @@ const unfollowUser = async (req, res) => {
         }
 
         // Vérifier si l'utilisateur suit bien la cible
-        if (!follower.following.includes(userId)) {
+        const isFollowing = follower.following.some(id => id.toString() === userId.toString());
+        if (!isFollowing) {
             return jsonResponse(res, "Vous ne suivez pas cet utilisateur", 400, null);
         }
 
-        // Supprimer la relation d'abonnement
-        follower.following = follower.following.filter((id) => id.toString() !== userId);
-        user.followers = user.followers.filter((id) => id.toString() !== followerId);
+        // Supprimer la relation d'abonnement avec conversion explicite en chaîne
+        follower.following = follower.following.filter(id => id.toString() !== userId.toString());
+        user.followers = user.followers.filter(id => id.toString() !== followerId.toString());
+
+        console.log(`Après filtrage - Abonnements de ${follower.username}:`, follower.following.length);
+        console.log(`Après filtrage - Abonnés de ${user.username}:`, user.followers.length);
 
         await follower.save();
         await user.save();
@@ -743,8 +752,6 @@ const unfollowUser = async (req, res) => {
         console.log(`${follower.username} ne suit plus ${user.username}`);
 
         // Envoyer une notification à l'utilisateur qui n'est plus suivi
-        // Note: Certaines applications choisissent de ne pas notifier les unfollows
-        // Si vous préférez ne pas envoyer de notification, vous pouvez commenter ce bloc
         await notificationManager.sendNotification({
             sender: followerId,
             receiver: userId,

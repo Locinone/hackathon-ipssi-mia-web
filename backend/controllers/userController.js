@@ -126,8 +126,9 @@ const followUser = async (req, res) => {
       });
     }
 
-    // Vérifier si l'utilisateur suit déjà la cible
-    if (currentUser.following.includes(id)) {
+    // Vérifier si l'utilisateur suit déjà la cible avec conversion explicite en chaîne
+    const isAlreadyFollowing = currentUser.following.some(followingId => followingId.toString() === id.toString());
+    if (isAlreadyFollowing) {
       return res.status(400).json({
         status: 400,
         message: "Vous suivez déjà cet utilisateur",
@@ -138,6 +139,9 @@ const followUser = async (req, res) => {
     // Ajouter la relation d'abonnement
     currentUser.following.push(id);
     userToFollow.followers.push(userId);
+
+    console.log(`Avant sauvegarde - Abonnements de ${currentUser.username}:`, currentUser.following.length);
+    console.log(`Avant sauvegarde - Abonnés de ${userToFollow.username}:`, userToFollow.followers.length);
 
     await currentUser.save();
     await userToFollow.save();
@@ -208,8 +212,9 @@ const unfollowUser = async (req, res) => {
       });
     }
 
-    // Vérifier si l'utilisateur suit bien la cible
-    if (!currentUser.following.includes(id)) {
+    // Vérifier si l'utilisateur suit bien la cible avec conversion explicite en chaîne
+    const isFollowing = currentUser.following.some(followingId => followingId.toString() === id.toString());
+    if (!isFollowing) {
       return res.status(400).json({
         status: 400,
         message: "Vous ne suivez pas cet utilisateur",
@@ -217,9 +222,12 @@ const unfollowUser = async (req, res) => {
       });
     }
 
-    // Supprimer la relation d'abonnement
-    currentUser.following = currentUser.following.filter(followingId => followingId.toString() !== id);
-    userToUnfollow.followers = userToUnfollow.followers.filter(followerId => followerId.toString() !== userId);
+    // Supprimer la relation d'abonnement avec conversion explicite en chaîne
+    currentUser.following = currentUser.following.filter(followingId => followingId.toString() !== id.toString());
+    userToUnfollow.followers = userToUnfollow.followers.filter(followerId => followerId.toString() !== userId.toString());
+
+    console.log(`Après filtrage - Abonnements de ${currentUser.username}:`, currentUser.following.length);
+    console.log(`Après filtrage - Abonnés de ${userToUnfollow.username}:`, userToUnfollow.followers.length);
 
     await currentUser.save();
     await userToUnfollow.save();
@@ -381,20 +389,22 @@ const getUserProfile = async (req, res) => {
       // Convertir les ObjectId en chaînes pour la comparaison
       const userIdStr = userId.toString();
 
-      // Vérifier si l'utilisateur connecté suit ce profil
+      // Vérifier si l'utilisateur connecté suit ce profil avec conversion explicite en chaîne
       const isFollowing = user.followers.some(follower =>
         follower.toString() === userIdStr
       );
 
-      // Vérifier si ce profil suit l'utilisateur connecté  
+      // Vérifier si ce profil suit l'utilisateur connecté avec conversion explicite en chaîne
       const isFollowed = user.following.some(follow =>
         follow.toString() === userIdStr
       );
 
+      console.log(`Relation - ${username} est suivi par l'utilisateur connecté: ${isFollowing}`);
+      console.log(`Relation - ${username} suit l'utilisateur connecté: ${isFollowed}`);
+
       return jsonResponse(res, 'Profil utilisateur récupéré', 200, { ...user.toObject(), isFollowing: isFollowing ? true : false, isFollowed: isFollowed ? true : false });
     } else {
       jsonResponse(res, 'Profil utilisateur récupéré', 200, user);
-
     }
   } catch (error) {
     jsonResponse(res, error.message, 500, null);
@@ -405,6 +415,7 @@ const getUserProfile = async (req, res) => {
 const getUserFollowers = async (req, res) => {
   try {
     const { userId } = req.params;
+    const currentUserId = req.user?.id;
 
     console.log(`Récupération des abonnés pour l'utilisateur: ${userId}`);
 
@@ -422,9 +433,27 @@ const getUserFollowers = async (req, res) => {
 
     // Récupérer les détails des abonnés
     const followers = await User.find({ _id: { $in: user.followers } })
-      .select('_id name username image');
+      .select('_id name username image following');
 
     console.log(`${followers.length} abonnés trouvés pour l'utilisateur ${userId}`);
+
+    // Si l'utilisateur est connecté, vérifier pour chaque abonné s'il est suivi par l'utilisateur connecté
+    if (currentUserId) {
+      const currentUser = await User.findById(currentUserId).select('following');
+
+      if (currentUser) {
+        // Ajouter un champ isFollowing à chaque abonné
+        const followersWithRelation = followers.map(follower => {
+          const isFollowing = currentUser.following.some(id => id.toString() === follower._id.toString());
+          return {
+            ...follower.toObject(),
+            isFollowing
+          };
+        });
+
+        return jsonResponse(res, 'Abonnés récupérés avec succès', 200, followersWithRelation);
+      }
+    }
 
     return jsonResponse(res, 'Abonnés récupérés avec succès', 200, followers);
   } catch (error) {
@@ -437,6 +466,7 @@ const getUserFollowers = async (req, res) => {
 const getUserFollowing = async (req, res) => {
   try {
     const { userId } = req.params;
+    const currentUserId = req.user?.id;
 
     console.log(`Récupération des abonnements pour l'utilisateur: ${userId}`);
 
@@ -457,6 +487,33 @@ const getUserFollowing = async (req, res) => {
       .select('_id name username image');
 
     console.log(`${following.length} abonnements trouvés pour l'utilisateur ${userId}`);
+
+    // Pour les abonnements, on sait déjà que l'utilisateur les suit
+    // Mais si l'utilisateur connecté est différent, on vérifie s'il suit ces utilisateurs
+    if (currentUserId && currentUserId !== userId) {
+      const currentUser = await User.findById(currentUserId).select('following');
+
+      if (currentUser) {
+        // Ajouter un champ isFollowing à chaque abonnement
+        const followingWithRelation = following.map(follow => {
+          const isFollowing = currentUser.following.some(id => id.toString() === follow._id.toString());
+          return {
+            ...follow.toObject(),
+            isFollowing
+          };
+        });
+
+        return jsonResponse(res, 'Abonnements récupérés avec succès', 200, followingWithRelation);
+      }
+    } else {
+      // Si c'est l'utilisateur lui-même qui consulte ses abonnements, ils sont tous suivis
+      const followingWithRelation = following.map(follow => ({
+        ...follow.toObject(),
+        isFollowing: true
+      }));
+
+      return jsonResponse(res, 'Abonnements récupérés avec succès', 200, followingWithRelation);
+    }
 
     return jsonResponse(res, 'Abonnements récupérés avec succès', 200, following);
   } catch (error) {
