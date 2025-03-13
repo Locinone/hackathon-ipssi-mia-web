@@ -36,25 +36,25 @@ function Posts({ userProfile = false, postsData }: { userProfile: boolean; posts
         const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
         const currentPost = postsData[currentPostIndex];
         if (emotion === 'neutral') {
+            await sleep(1500);
             goToNextPost();
-        }
-        if (currentPost.isLiked || currentPost.isDisliked) {
-            goToNextPost();
-            return;
         }
         if (emotion === 'surprise') {
             autoBookmarkPost(currentPost._id!);
             await sleep(1500);
+            return;
         }
         if (emotion === 'happy') {
             await sleep(1500);
             autoLikePost(currentPost._id!);
             currentPost.isLiked = true;
+            return;
         } 
         if (emotion === 'angry' || emotion === 'sad' || emotion === 'disguste' || emotion === 'fear') {
             await sleep(1500);
             autoDislikePost(currentPost._id!);
             currentPost.isDisliked = true;
+            return;
         }
     };
 
