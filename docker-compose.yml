@@ -13,16 +13,18 @@ services:
     networks:
       - mern_network
   
-  backend-flask:
-    container_name: ai-backend
+  fer:
+    container_name: facial-emotion-recognition
     restart: always
     ports:
       - "5050:5050"
     build:
-      context: ./backend_fer
+      context: ./fer
       dockerfile: Dockerfile
+      cache_from:
+        - ai_backend_cache
     volumes:
-      - ./backend_fer:/app
+      - ./fer:/app
     networks:
       - mern_network
 
@@ -30,6 +32,8 @@ services:
     build:
       context: ./nlp
       dockerfile: Dockerfile
+      cache_from:
+        - nlp_topic_modeling_cache
     container_name: nlp_topic_modeling
     environment:
       - API_KEY=your_secret_api_key_here
@@ -46,6 +50,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      cache_from:
+        - mern_backend_cache
     container_name: mern_backend
     ports:
       - "3000:3000"
@@ -58,10 +64,13 @@ services:
       - mongo
     networks:
       - mern_network
+
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      cache_from:
+        - mern_frontend_cache
     container_name: mern_frontend
     volumes:
       - ./frontend:/app
@@ -70,7 +79,7 @@ services:
       - "5173:5173"
     depends_on:
       - backend
-      - backend-flask
+      - fer
     networks:
       - mern_network
 

@@ -43,13 +43,14 @@ function Posts({ userProfile = false, postsData }: { userProfile: boolean; posts
         }
         if (emotion === 'surprise') {
             autoBookmarkPost(currentPost._id!);
+
             await sleep(1500);
             return;
         }
         if (emotion === 'happy') {
             await sleep(1500);
             autoLikePost(currentPost._id!);
-            currentPost.isLiked = true;
+            //autoCommentPost({postId: currentPost._id!, comment:'😍'});
             return;
         }
         if (
@@ -60,7 +61,6 @@ function Posts({ userProfile = false, postsData }: { userProfile: boolean; posts
         ) {
             await sleep(1500);
             autoDislikePost(currentPost._id!);
-            currentPost.isDisliked = true;
             return;
         }
     };

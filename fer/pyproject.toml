@@ -1,5 +1,5 @@
 [project]
-name = "backend-fer"
+name = "fer"
 version = "0.1.0"
 description = "backend for fer machine learning algo integration"
 authors = [
@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [tool.poetry]
-packages = [{include = "backend_fer", from = "src"}]
+packages = [{include = "fer", from = "src"}]
 
 
 [build-system]
